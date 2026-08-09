@@ -1,0 +1,190 @@
+---
+paths:
+  - "**/*.brs"
+  - "**/*.bs"
+  - "components/**/*.xml"
+  - "**/components/**/*.xml"
+  - "source/**/*.xml"
+  - "**/source/**/*.xml"
+  - "bsconfig.json"
+  - "**/bsconfig.json"
+  - "bslint.json"
+  - "**/bslint.json"
+  - "manifest"
+  - "**/manifest"
+---
+
+# Roku Architecture Standards
+
+## Purpose
+
+Define the architecture to follow when adding or changing Roku code. Roku features should follow Clean Architecture and MVVM boundaries without adding ceremony that the feature does not need.
+
+The goal is simple: SceneGraph views render, ViewModels own screen state and actions, use cases coordinate business behavior, services own side effects, and mappers keep wire/storage quirks away from UI.
+
+## Clean Architecture model
+
+Use this mental model for Roku code:
+
+| Responsibility | Roku shape |
+|---|---|
+| View | SceneGraph XML plus a thin component `.brs` controller |
+| ViewModel | BrightScript object/module that owns UI state, actions, and one-off events |
+| Use case / application service | Operation that coordinates business rules and collaborators |
+| Service / provider | Networking, storage, SDK, auth, entitlement, analytics, playback, or platform side effects |
+| Mapper / presenter | Pure conversion from DTO/storage/domain data into screen-ready state |
+| Entity / domain model | App concept and invariant independent of SceneGraph and transport |
+
+Dependencies MUST point inward. Views may depend on ViewModels. ViewModels may depend on use cases or services. Use cases may depend on interfaces, factories, or injected collaborators. Domain logic and mappers MUST NOT depend on SceneGraph nodes, Task nodes, HTTP clients, SDK globals, or concrete transport details.
+
+## MVVM flow
+
+Use unidirectional flow for screen behavior:
+
+```text
+Remote key / observer / user event
+    -> component `.brs` forwards an action
+    -> ViewModel handles the action
+    -> use case or service performs work
+    -> mapper builds screen-ready state
+    -> ViewModel publishes explicit UI state
+    -> component `.brs` renders nodes from state
+```
+
+Apply these without exception:
+
+- Component `.brs` files MUST NOT own backend calls, storage, SDK workflows, entitlement decisions, or analytics branching when those can live in a ViewModel, use case, or service.
+- ViewModels MUST expose one explicit screen state object or associative array instead of scattered mutable fields.
+- ViewModels MUST receive UI actions through named methods or a single action dispatcher.
+- Remote or async content MUST represent loading, success, empty, error, offline, restricted, and refreshing states when those states exist in the product.
+- DTOs, raw JSON, and transport response objects MUST NOT be passed directly into SceneGraph views.
+- Mappers MUST normalize missing, null, variant, entitlement, and formatting edge cases before UI consumes data.
+- One-off events such as navigation, focus jumps, dialogs, playback starts, and analytics events MUST be explicit outputs from the ViewModel or coordinator.
+
+## Component architecture
+
+SceneGraph XML and component `.brs` scripts have different responsibilities.
+
+- XML declares nodes, fields, scripts, layout, and stable IDs.
+- XML `<interface>` declares the fields and functions that other components may use.
+- Component `.brs` finds nodes, observes fields, forwards remote/user events, and renders ViewModel state into nodes.
+- Component `.brs` should not parse raw API JSON, decide entitlement, own cache policy, perform retries, or format analytics payloads.
+- XML fields should be treated as inputs and outputs at the component boundary, not as a hidden global state store.
+- Use `observeField()` to trigger state updates from field changes. Do not poll component fields to detect data changes.
+- Keep node lookup order in `init` aligned with XML order so wiring stays reviewable.
+- Do not call arbitrary component functions from the outside. Expose callable component functions through XML `<interface>`.
+- Treat arrays and associative arrays passed through SceneGraph fields as boundary values. If a child mutates one, the parent should not expect its original value to update unless the new value is explicitly assigned back through a field.
+
+```xml
+<interface>
+  <function name="executePlayback"/>
+  <field id="content" type="assocarray"/>
+</interface>
+```
+
+## DRY, KISS, and dependency injection
+
+Use DRY for business rules, endpoint options, request throttling, entitlement checks, analytics payload shape, and mapper behavior that would drift if copied. Use KISS before adding a new layer.
+
+Add a new abstraction only when it has a concrete reason:
+
+- multiple callers
+- external side effect
+- test seam
+- existing local precedent
+- meaningful duplicated logic removed
+
+Prefer dependency injection through factories and constructors. In BrightScript, that usually means passing an associative array of collaborators into a `newFeatureViewModel(deps)` or `newFeatureService(deps)` factory. Do not create HTTP clients, SDK clients, storage handles, clocks, or analytics managers ad hoc inside ViewModels or views if they can be supplied by composition code.
+
+Required dependencies are required. Do not add repeated nil checks for collaborators guaranteed by construction. If a dependency can actually be absent, model that optionality explicitly and handle it once at the boundary.
+
+## Preferred feature shape
+
+A typical API-backed Roku feature should have these responsibilities:
+
+- SceneGraph XML: declares nodes, fields, scripts, and static layout.
+- Component `.brs`: finds nodes, observes fields, forwards events, and renders state.
+- ViewModel: owns screen state, handles actions, coordinates use cases, and exposes one-off events.
+- Use case or domain function: performs one app-level operation and returns an explicit result.
+- Service/provider: owns transport, persistence, SDK, playback, analytics, auth, or entitlement side effects.
+- Mapper/presenter: converts external or storage data into domain or UI-ready state.
+
+Do not force every small bug fix into this full shape. Do use the shape when the feature involves async work, backend data, entitlement, playback, multiple UI states, or behavior that needs tests.
+
+## Do / Don't
+
+Do:
+
+```brightscript
+function newFeatureViewModel(deps as Object) as Object
+  return {
+    loadFeature: deps.loadFeature
+    presentFeature: deps.presentFeature
+    state: { pageState: "loading", items: [] }
+
+    send: function(action as Object) as Object
+      if action = invalid or not action.DoesExist("type") then return m.state
+
+      if action["type"] = "load" and action.DoesExist("id") then
+        result = m.loadFeature.execute(action["id"])
+        m.state = m.presentFeature.fromResult(result)
+      end if
+
+      return m.state
+    end function
+  }
+end function
+```
+
+Don't:
+
+```brightscript
+sub onLoadButtonPressed()
+  transfer = CreateObject("roUrlTransfer")
+  transfer.SetUrl("https://example.invalid/feature")
+  response = ParseJson(transfer.GetToString())
+  m.titleLabel.text = response.items[0].title
+end sub
+```
+
+Reason: the view now owns transport, parsing, null handling, and rendering, so the behavior is hard to test and easy to break.
+
+Do:
+
+```brightscript
+function presentFeatureResult(result as Object) as Object
+  if result = invalid or not result.DoesExist("status") then
+    return { pageState: "error", messageKey: "feature_error" }
+  end if
+
+  items = []
+  if result.DoesExist("items") and result["items"] <> invalid then
+    items = result["items"]
+  end if
+
+  if result["status"] = "success" and items.Count() = 0 then
+    return { pageState: "empty", items: [] }
+  end if
+
+  if result["status"] = "error" then
+    return { pageState: "error", messageKey: "feature_error" }
+  end if
+
+  return { pageState: "content", items: items }
+end function
+```
+
+Don't:
+
+```brightscript
+if response <> invalid then m.titleLabel.text = response.items[0].title
+```
+
+Reason: a single invalid check does not cover missing arrays, empty states, parsing failures, entitlement, offline behavior, or user-facing error copy.
+
+## Validation Expectations
+
+- For architecture-sensitive changes, review the call path from XML/component `.brs` to ViewModel to use case/service to mapper/data before editing.
+- For logic changes, add or update focused tests for the ViewModel, use case, mapper, or service when the repo has a test harness.
+- For UI-state changes, verify loading, success, empty, error, offline, restricted, refresh, and stale-response behavior when applicable.
+- For dependency wiring changes, lint and compile/package the channel when the environment allows it.

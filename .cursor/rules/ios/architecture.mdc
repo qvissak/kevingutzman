@@ -1,0 +1,177 @@
+---
+description: iOS Architecture Standards — iOS / Swift platform
+globs: ["**/*.swift","**/*.pbxproj"]
+alwaysApply: false
+---
+
+<!--
+What: Project-specific iOS architecture standards for the DailyWire app.
+Who calls it / when: Engineers and AI agents read this before changing Swift app structure.
+Gotchas: Extends iOS Foundations; do not replace those baseline SwiftUI/Swinject/state rules.
+-->
+
+# iOS Architecture Standards
+
+## Purpose
+
+Define the architecture to follow when adding or changing code in the existing iOS project. These standards are based on the current DailyWire iOS codebase and should prevent contributors from inventing parallel structures.
+
+## Current Project Pattern
+
+- The project is a single iOS app under `App/DailyWire`.
+- Shared SwiftUI and UIKit UI code lives under `App/DailyWire/UI` and `App/DailyWire/ViewModifiers`.
+- Feature-specific code may live under a feature service namespace, such as `Services/Shorts/Shorts+UI`, when the project already organizes that feature vertically.
+- Shared app services live under `App/DailyWire/Services`.
+- Dependency registrations live under `App/DailyWire/Module` in `Injector` assemblies.
+- App entry and root coordination live under `App/DailyWire/App`.
+- API-backed features generally flow through `Middleware.Client` or a protocol abstraction, then a service/provider, mapper, view model/coordinator, and SwiftUI/UIKit UI.
+
+```text
+App/DailyWire/
+├── App/
+│   ├── DailyWireAppDelegate.swift
+│   ├── Root/
+│   └── UserSessionCoordinator.swift
+├── Module/
+│   └── Injector assemblies
+├── Services/
+│   ├── Networking/
+│   ├── Auth/
+│   ├── Media/
+│   ├── DownloadsCoordinator/
+│   ├── FeatureFlags/
+│   └── <feature>/
+└── UI/
+    ├── Main/
+    ├── Components/
+    ├── Coordinator/
+    └── <feature>/
+```
+
+## Required Standards
+
+- Prefer the existing local package/folder pattern before introducing a new feature layout.
+- Keep feature UI, state, actions, and view-model behavior close together unless reuse is proven.
+- Use a unidirectional flow: UI sends actions, view models/coordinators update state or emit events, services/providers perform app behavior, and data/network layers handle transport or storage.
+- View models expose immutable or `private(set)` observable state and receive UI actions through explicit methods or a single action entry point.
+- Represent remote or async page content with explicit loading, success, empty, error, offline, and restricted states when those states exist in the product.
+- Do not pass network DTOs directly to UI. Map DTOs into domain or UI-ready models first.
+- Prefer constructor injection. Add Swinject registrations only when a binding or provider is actually needed.
+- Do not add repositories, use cases, managers, coordinators, or helper layers unless the feature needs that boundary.
+- Check the active deployment target before using APIs introduced after the iOS 16 family.
+
+## Preferred Feature Shape
+
+A typical feature in this project should have these responsibilities:
+
+- SwiftUI view or UIKit adapter: renders state and sends actions.
+- ViewModel or coordinator: owns UI state, handles actions, coordinates services, and emits one-off UI/navigation events.
+- Service/provider: performs app-specific behavior and hides networking, persistence, media, auth, analytics, or platform details.
+- Mapper: converts middleware, storage, or platform models into domain or UI-ready models.
+- Assembly registration: wires dependencies and scopes long-lived/session-scoped services correctly.
+
+## Abstraction Test
+
+Add a new layer only when it has a concrete reason:
+
+- multiple callers
+- external side effect
+- test seam
+- existing local precedent
+- meaningful duplicated logic removed
+
+Do not add a layer only because a generic architecture pattern says it should exist.
+
+## Do / Don't
+
+Do:
+
+```swift
+struct FeatureUIState {
+    var pageState: FeaturePageState = .loading
+    var isRefreshing: Bool = false
+}
+
+enum FeatureAction {
+    case load
+    case refresh
+    case itemSelected(id: String)
+}
+```
+
+Don't:
+
+```swift
+final class FeatureViewModel: ObservableObject {
+    var page: FeaturePage?
+    var isLoading = false
+    var error: Error?
+}
+```
+
+Reason: one state object is easier to render, test, and evolve than scattered mutable fields.
+
+Do:
+
+```swift
+@MainActor
+final class FeatureViewModel: ObservableObject {
+    @Published private(set) var uiState = FeatureUIState()
+
+    private let provider: FeatureProvider
+
+    init(provider: FeatureProvider) {
+        self.provider = provider
+    }
+
+    func send(_ action: FeatureAction) {
+        switch action {
+        case .load:
+            load()
+        case .refresh:
+            refresh()
+        case .itemSelected(let id):
+            openItem(id)
+        }
+    }
+
+    private func load() { }
+    private func refresh() { }
+    private func openItem(_ id: String) { }
+}
+```
+
+Don't:
+
+```swift
+struct FeatureView: View {
+    let client: MiddlewareClient
+
+    var body: some View {
+        Button("Load") {
+            Task {
+                _ = try await client.getPostPage(
+                    id: .slug("feature"),
+                    membershipPlan: nil,
+                    isForced: false
+                )
+            }
+        }
+    }
+}
+```
+
+Reason: views should not own transport, persistence, or business work.
+
+## Exceptions
+
+- Small bug fixes may preserve an existing local pattern if changing it would require a broad refactor.
+- Legacy code may use older singleton, Combine, or state patterns. New code should not copy deprecated patterns.
+- A feature can skip a provider/use-case layer when the operation is trivial and the existing package already handles similar work without one.
+
+## Validation Expectations
+
+- For logic changes, add or update focused unit or view-model tests.
+- For UI-state changes, verify loading, success, error, refresh, empty, offline, and restricted states when applicable.
+- For dependency injection changes, compile at least one relevant app target or run the narrowest DI-aware test.
+- For architecture-sensitive changes, review the call path from UI to view model/coordinator to service/provider to data/storage before editing.

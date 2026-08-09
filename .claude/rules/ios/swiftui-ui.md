@@ -1,0 +1,144 @@
+---
+paths:
+  - "**/*.swift"
+  - "**/*.pbxproj"
+---
+
+<!--
+What: SwiftUI and UIKit UI standards for the DailyWire iOS app.
+Who calls it / when: Engineers and AI agents read this before changing iOS UI code.
+Gotchas: Complements iOS Foundations; foundation SwiftUI rules still apply.
+-->
+
+# iOS SwiftUI UI Standards
+
+## Purpose
+
+Define how SwiftUI and UIKit UI should be written in the existing iOS project so screens remain lifecycle-safe, testable, localized, and consistent. UI code should render state and dispatch user intent; it should not become the owner of business logic or data loading.
+
+## Current Project Pattern
+
+- Shared UI components live under `App/DailyWire/UI/Components` and `App/DailyWire/UI/Common`.
+- Screen flows live under `App/DailyWire/UI/Main`, `App/DailyWire/UI/Authorization`, `App/DailyWire/UI/Subscription`, and feature-specific folders.
+- UIKit interop appears in player, Chromecast, CarPlay, app/scene delegates, and representable adapters.
+- Theme primitives live in `AppThemeV2`, `AppColorsV2`, `AppTypographyV2`, `AppDimensV2`, and related common UI files.
+- User-facing strings are centralized through `DW.Text` and `Localizable.xcstrings`.
+
+## Required Standards
+
+- The screen-level view connects the view model/coordinator to stateless UI sections.
+- Child views receive explicit state and callbacks rather than reading feature view models directly.
+- Use `DW.Text` for localized user-facing strings.
+- Reuse existing theme, typography, colors, dimensions, skeletons, error layouts, loading overlays, and shared components before adding new UI primitives.
+- Keep local `@State` limited to ephemeral UI concerns such as scroll position, focus, expanded menus, transient selection, and animation state.
+- Use `.task`, `.onAppear`, `.onDisappear`, and representable coordinator hooks only for UI lifecycle work; route business work into the view model/coordinator.
+- Do not start network, persistence, analytics, media playback, or navigation work directly from reusable child views.
+- Prefer previews for reusable views and state-rich screens.
+- Preserve accessibility labels, VoiceOver behavior, dynamic type, touch target size, and contrast when changing reusable controls.
+
+## Preferred Screen Shape
+
+- Screen view owns or receives a view model.
+- Screen view reads state and sends lifecycle/user actions.
+- Layout views render state.
+- Reusable components are stateless unless they own purely visual state.
+- Loading, error, available, empty, offline, and restricted states are explicit when supported.
+
+## Do / Don't
+
+Do:
+
+```swift
+struct FeatureScreen: View {
+    @StateObject private var viewModel: FeatureViewModel
+
+    init(viewModel: FeatureViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    var body: some View {
+        FeatureLayout(
+            state: viewModel.uiState,
+            onAction: viewModel.send
+        )
+        .task {
+            viewModel.send(.load)
+        }
+    }
+}
+```
+
+Don't:
+
+```swift
+struct FeatureLayout: View {
+    @StateObject private var viewModel: FeatureViewModel
+
+    init(viewModel: FeatureViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    var body: some View {
+        Button("Retry") {
+            viewModel.refreshAndNavigate()
+        }
+    }
+}
+```
+
+Reason: child UI should stay easy to preview and test without a real view model.
+
+Do:
+
+```swift
+private struct FeatureLayout: View {
+    let state: FeatureUIState
+    let onAction: (FeatureAction) -> Void
+
+    var body: some View {
+        switch state.pageState {
+        case .loading:
+            SkeletonView()
+        case .error:
+            ErrorView(onRetry: { onAction(.refresh) })
+        case .available(let page):
+            FeatureContent(page: page, onAction: onAction)
+        }
+    }
+}
+```
+
+Don't:
+
+```swift
+private struct FeatureLayout: View {
+    let client: Middleware.Client
+
+    var body: some View {
+        Button("Load") {
+            Task {
+                _ = try await client.getPostPage(
+                    id: .slug("feature"),
+                    membershipPlan: nil,
+                    isForced: false
+                )
+            }
+        }
+    }
+}
+```
+
+Reason: reusable UI should not own transport or backend contracts.
+
+## Exceptions
+
+- Very small internal components may keep simple visual state if hoisting it would make call sites worse.
+- Existing screens may use older view-model ownership patterns. Prefer the foundation pattern when touching those screens unless the local pattern prevents a safe narrow change.
+- Platform interop such as `UIViewRepresentable`, player views, Chromecast, and CarPlay may require local coordinators. Keep adapters thin and documented when behavior is not obvious.
+
+## Validation Expectations
+
+- For UI changes, verify loading, error, success, empty, offline, and restricted states that the screen supports.
+- For state or lifecycle changes, add or update view-model or UI-adjacent unit tests when behavior is non-trivial.
+- For reusable UI components, prefer previews or focused tests when visual states are complex.
+- For accessibility-sensitive components, verify labels, touch targets, dynamic type behavior, and readable text.

@@ -1,0 +1,162 @@
+---
+paths:
+  - "**/*.kt"
+  - "**/*.kts"
+  - "**/*.gradle"
+---
+
+# Android Architecture Standards
+
+## Purpose
+
+Define the architecture to follow when adding or changing code in the existing Android project. These standards are based on the current codebase and should prevent contributors from inventing parallel structures.
+
+## Project Pattern
+
+- The project is a single Android app module.
+- App-specific code belongs under `app/src/main/java/com/dailywire/thedailywire`.
+- Screens usually live under `app/ui/screens/...` and are paired with a feature ViewModel.
+- Feature ViewModels commonly define `UiState`, `Action`, and a `send` action handler near the ViewModel.
+- Tab screens extend the existing tab screen base behavior when they need shared tab navigation, analytics, or component handling.
+- API-backed features generally flow through `Service -> Repository -> ViewModel -> Compose`.
+
+```text
+app/src/main/java/com/dailywire/thedailywire/
+├── app/
+│   ├── ui/
+│   │   ├── screens/
+│   │   │   └── <feature>/
+│   │   │       ├── <Feature>Screen.kt
+│   │   │       ├── <Feature>ViewModel.kt
+│   │   │       └── <Feature>ScreenSkeleton.kt
+│   │   ├── components/
+│   │   └── navigation/
+│   ├── domain/
+│   │   └── <area>/
+│   │       ├── models/
+│   ├── data/
+│   │   └── <area>/
+│   │       └── <Area>Repository.kt
+│   ├── di/
+│   └── managers/
+└── components/
+    ├── api/
+    ├── common/
+    ├── local/
+    ├── navigation/
+    ├── theme/
+    └── utils/
+```
+
+## Required Standards
+
+- Keep feature UI, state, actions, and ViewModel behavior close together unless reuse is proven.
+- Use a unidirectional flow: UI sends actions, ViewModel updates state or emits events, domain/data layers perform work.
+- ViewModels expose immutable state and receive UI actions through a single action entry point.
+- Represent remote or async page content with a loadable state type such as `LoadableUiState`.
+- Represent API/domain operation results with a result type such as `Result`.
+- Do not pass network DTOs directly to UI. Map DTOs into domain or UI-ready models first.
+- Prefer constructor injection. Add dependency injection modules only when a binding or provider is actually needed.
+- Prefer an injected dispatcher holder, such as `AppDispatchers`, for coroutine-dependent classes.
+- Do not add repositories, use cases, managers, or helper layers unless the feature needs that boundary.
+
+## Preferred Feature Shape
+
+A typical feature in this project should have these responsibilities:
+
+- Screen composable: renders state and sends actions.
+- ViewModel: owns UI state, handles actions, coordinates use cases, emits one-off events.
+- Repository layer: calls API, maps DTOs to UI/domain models.
+- API layer (currently called 'services'): handles transport concerns, maps DTOs.
+
+## Do / Don't
+
+Do:
+
+```kotlin
+data class FeatureUiState(
+    val pageState: LoadableUiState<FeaturePage> = LoadableUiState.Loading(),
+    val isRefreshing: Boolean = false,
+)
+
+sealed class FeatureAction {
+    data object Load : FeatureAction()
+    data object Refresh : FeatureAction()
+    data class ItemSelected(val id: String) : FeatureAction()
+}
+```
+
+Don't:
+
+```kotlin
+class FeatureViewModel : ViewModel() {
+    var page: FeaturePage? = null
+    var isLoading: Boolean = false
+    var error: Throwable? = null
+}
+```
+
+Reason: one immutable state object is easier to render, test, and evolve than scattered mutable fields.
+
+Do:
+
+```kotlin
+class FeatureViewModel(
+    private val loadFeature: LoadFeatureUseCase,
+) : ViewModel() {
+    val uiState: StateFlow<FeatureUiState> = state
+
+    val send: (FeatureAction) -> Unit = { action ->
+        when (action) {
+            FeatureAction.Load -> load()
+            FeatureAction.Refresh -> refresh()
+            is FeatureAction.ItemSelected -> openItem(action.id)
+        }
+    }
+}
+```
+
+Don't:
+
+```kotlin
+@Composable
+fun FeatureScreen() {
+    val service = Retrofit.Builder().build().create(FeatureService::class.java)
+    LaunchedEffect(Unit) {
+        service.getFeature()
+    }
+}
+```
+
+Reason: composables should not own transport, persistence, or business work.
+
+Do:
+
+```kotlin
+suspend fun loadFeature(): Result<FeaturePage> {
+    return api.getFeature().mapToModel()
+}
+```
+
+Don't:
+
+```kotlin
+suspend fun loadFeature(): FeatureResponseDto {
+    return service.getFeature()
+}
+```
+
+Reason: UI and ViewModels should not depend on wire models.
+
+## Exceptions
+
+- Small bug fixes may preserve an existing local pattern if changing it would require a broad refactor.
+- Legacy code may use older dispatcher or state patterns. New code should not copy deprecated patterns.
+- A feature can skip a use case when the operation is trivial and the existing package already handles similar work without one.
+
+## Validation Expectations
+
+- For logic changes, add or update focused unit or ViewModel tests.
+- For UI-state changes, verify loading, success, error, refresh, and empty states when applicable.
+- For dependency injection changes, compile at least one relevant app variant or run the narrowest DI-aware test.
+- For architecture-sensitive changes, review the call path from screen to ViewModel to domain/data before editing.

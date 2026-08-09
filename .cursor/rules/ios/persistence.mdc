@@ -1,0 +1,133 @@
+---
+description: iOS Persistence Standards — iOS / Swift platform
+globs: ["**/*.swift","**/*.pbxproj"]
+alwaysApply: false
+---
+
+<!--
+What: iOS persistence standards for Realm, UserDefaults, downloads, and user-scoped storage.
+Who calls it / when: Engineers and AI agents read this before changing local storage behavior.
+Gotchas: Offline/download data is user-scoped and must preserve account boundaries.
+-->
+
+# iOS Persistence Standards
+
+## Purpose
+
+Define how the existing iOS project should persist local data with Realm, UserDefaults-backed preferences, and file/download storage while preserving migrations, user isolation, offline behavior, and testability.
+
+## Current Project Pattern
+
+- Realm storage lives under `App/DailyWire/Services/RealmStorageService`.
+- Download persistence and cleanup live under `Services/DownloadsCoordinator`, `Services/DownloadsWorkers`, `Services/Downloads+Cleaner`, and related download context folders.
+- Preference-like state is centralized behind `PreferencesService`, `UserPreferencesService`, feature flag storage, and focused `UserDefaults` extensions.
+- Feature flag override state uses `UserDefaults` behind `FeatureFlagStore`.
+- Media progress and playback preferences use UserDefaults-backed services.
+- Tests for preferences, feature flags, and storage-adjacent behavior live under `App/DailyWireUnitTests`.
+
+```text
+App/DailyWire/Services/
+├── RealmStorageService/
+├── DownloadsCoordinator/
+├── DownloadsWorkers/
+├── Downloads+Cleaner/
+├── FeatureFlags/
+└── UserSettingsService.swift
+```
+
+## Required Standards
+
+- Use Realm for queryable structured offline/download data already modeled in Realm.
+- Use UserDefaults-backed services for small preference-like state.
+- Use file storage only for actual files or large binary content such as downloads.
+- Keep persistence models separate from domain/UI models when storage shape differs from app behavior.
+- Hide Realm, UserDefaults keys, and file paths behind services, repositories, providers, or typed accessors.
+- User-scoped data must remain isolated by user identifier, Realm file name, ownership key, or explicit cleanup path.
+- Do not store raw auth tokens, secrets, private credentials, or sensitive payloads unless the product requirement and storage mechanism are explicitly approved.
+- Do not let SwiftUI views read/write persistence directly when a service or view model can own the behavior.
+
+## Realm Standards
+
+- Keep Realm object changes, query changes, cleanup behavior, and migration handling together.
+- Preserve object schema restrictions such as explicitly configured object types when the service relies on them.
+- Avoid destructive data resets for production storage unless explicitly approved for that data set.
+- Preserve offline download behavior when changing persisted download entities or cleanup thresholds.
+
+## UserDefaults Standards
+
+- Keep keys centralized behind `PreferencesService`, a focused store, or a typed extension.
+- Provide typed accessors or service methods instead of spreading raw key reads and writes across UI.
+- Keep default values explicit.
+- Test default values and read/write behavior for new preference keys.
+
+## Do / Don't
+
+Do:
+
+```swift
+final class FeatureFlagStore {
+    private let storage: UserDefaults
+
+    init(storage: UserDefaults = .standard) {
+        self.storage = storage
+    }
+
+    func isEnabled(_ flag: FeatureFlag) -> Bool {
+        storage.bool(forKey: key(for: flag))
+    }
+
+    private func key(for flag: FeatureFlag) -> String {
+        "feature_flag_\(flag.rawValue)"
+    }
+}
+```
+
+Don't:
+
+```swift
+struct SettingsView: View {
+    var body: some View {
+        Toggle("Autoplay", isOn: Binding(
+            get: { UserDefaults.standard.bool(forKey: "autoplay") },
+            set: { UserDefaults.standard.set($0, forKey: "autoplay") }
+        ))
+    }
+}
+```
+
+Reason: preference ownership belongs in a service/store or view model, not UI.
+
+Do:
+
+```swift
+final class DownloadProvider {
+    private let storage: RealmStorageService
+
+    init(storage: RealmStorageService) {
+        self.storage = storage
+    }
+}
+```
+
+Don't:
+
+```swift
+final class DownloadViewModel: ObservableObject {
+    private let realm = try! Realm()
+}
+```
+
+Reason: ViewModels should not own storage configuration or bypass user-scoped storage.
+
+## Exceptions
+
+- In-memory storage can be used for ephemeral state that should not survive process death.
+- Test-only storage may use isolated temporary stores or in-memory defaults if clearly separated from production code.
+- Existing legacy preferences may remain in `PreferencesService`; new code should still use typed accessors.
+
+## Validation Expectations
+
+- For Realm schema or query changes, verify migration/cleanup behavior and user-scoped data boundaries.
+- For download persistence changes, test downloaded, paused, failed, cleaned, and user-switch behavior when applicable.
+- For UserDefaults changes, test default values and write/read behavior.
+- If storage files or schema behavior change unexpectedly during validation, stop and inspect the diff before keeping it.

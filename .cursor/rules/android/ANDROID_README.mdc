@@ -1,0 +1,109 @@
+---
+description: Android Project Engineering Standards — Android / Kotlin platform
+globs: ["**/*.kt","**/*.kts","**/*.gradle"]
+alwaysApply: false
+---
+
+# Android Project Engineering Standards
+
+## Purpose
+
+This directory defines how engineers and AI agents should add or change code in the existing Android project.
+
+These are not generic Android templates. They are standards for this Android codebase, based on the architecture and patterns already present in the project. Do not use them to invent a new structure when the current project already has an established path.
+
+Sensitive values, credentials, signing details, Firebase files, private test config, and exact environment secrets must not be copied into standards docs.
+
+## Current Project Anchors
+
+- Single Gradle module: `:app`.
+- App code: `app/src/main/java/com/dailywire/thedailywire`.
+- Unit and Robolectric tests: `app/src/test`.
+- Instrumentation and E2E tests: `app/src/androidTest`.
+- Shared test fixtures: `app/src/testFixtures`.
+- Room schema history: `app/schemas`.
+- Main build config: `app/build.gradle.kts`.
+- Dependency catalog: `gradle/libs.versions.toml`.
+
+```text
+.
+├── app/
+│   ├── build.gradle.kts
+│   ├── schemas/
+│   └── src/
+│       ├── main/
+│       │   └── java/com/dailywire/thedailywire/
+│       ├── test/
+│       ├── androidTest/
+│       └── testFixtures/
+├── gradle/
+│   └── libs.versions.toml
+├── AGENTS.md
+└── TESTING.md
+```
+
+## Standards Index
+
+- [Architecture](architecture.md): existing feature structure, state, domain/data boundaries, dependency injection, and coroutine ownership.
+- [Compose UI](compose-ui.md): current Compose state ownership, lifecycle-aware collection, UI component reuse, loading/error states, and previews.
+- [ViewModels](viewmodel.md): ViewModel creation and usage.
+- [Navigation](navigation.md): existing navigation ownership, destinations, deep links, tabs, overlays, and one-off navigation events.
+- [Data And Network](data-network.md): current Retrofit layering, DTO/domain separation, mapping, error handling, caching, and refresh behavior.
+- [Deeplink Routing](deeplink-routing-rules.md): how URL-shaped input is parsed, stored, converted to navigation destinations, and routed in this project.
+- [Persistence](persistence.md): Room, DataStore, migrations, schema history, and user-scoped data rules for this project.
+- [Testing](testing.md): expectations for unit, ViewModel, Compose, API, integration, and E2E tests in this project.
+- [AI Agent Guidelines](ai-agent-guidelines.md): Android-specific workflow for AI-assisted changes in this project.
+
+## Required Baseline
+
+- New Android code must follow these standards unless the local task or existing code path clearly requires a narrower legacy-compatible change.
+- Existing project code may contain legacy patterns. Do not widen those patterns in new code.
+- Prefer the smallest safe change that fits the current architecture.
+- Do not refactor, rename, move files, add new layers, or change architecture unless the task explicitly requires it.
+- Start by classifying the task as a bug fix, feature change, refactor, test update, build/config change, docs-only change, analysis/report, review, debugging, or reproduction.
+- Keep exact sensitive or environment-specific values out of these docs.
+- When adding code, start from the nearest existing screen, ViewModel, use case, API, mapper, DAO, or test and extend that path.
+
+## Preferred Usage Pattern
+
+- Use these docs to decide where new Android code belongs and how it should be shaped.
+- Use `AGENTS.md` for execution rules such as minimal change, sensitive files, validation, and dirty worktree behavior.
+- Update these standards when the team intentionally changes how this Android project should be written.
+
+## Do / Don't
+
+Do:
+
+```md
+Project standards:
+- Feature ViewModels expose immutable UiState.
+- Network calls return ApiResult.
+- Room changes include migrations and schema updates.
+- New screens follow the existing Screen + ViewModel + UiState + Action pattern.
+```
+
+Don't:
+
+```md
+Project standards:
+- Add a second architecture for a new screen.
+- Put DTOs directly into Compose UI.
+- Copy sensitive config values into examples.
+```
+
+Reason: these standards should help contributors extend the existing Android project without creating parallel patterns or exposing private configuration.
+
+## Exceptions
+
+- A small bug fix may preserve a nearby legacy pattern when changing it would require broad refactoring.
+- Product, compliance, or release constraints can override a standard only when the reason is explicit in the task or project documentation.
+- Examples in these docs are illustrative, but they should stay close to patterns used in this project.
+
+## Validation Expectations
+
+Documentation changes should be reviewed for:
+
+- consistency with current Android app practice
+- no secrets or environment-specific values
+- clear enough guidance for both developers and AI agents
+- no conflict with `AGENTS.md`, or the existing implementation

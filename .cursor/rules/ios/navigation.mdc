@@ -1,0 +1,109 @@
+---
+description: iOS Navigation Standards — iOS / Swift platform
+globs: ["**/*.swift","**/*.pbxproj"]
+alwaysApply: false
+---
+
+<!--
+What: iOS navigation standards for the DailyWire app.
+Who calls it / when: Engineers and AI agents read this before changing SwiftUI navigation, coordinators, overlays, or player routing.
+Gotchas: Navigation is split between root flow, main flow, coordinators, deeplinks, and playback.
+-->
+
+# iOS Navigation Standards
+
+## Purpose
+
+Define the expected pattern for adding screens, overlays, modal drawers, deeplink targets, and playback navigation in the existing iOS project.
+
+## Current Project Pattern
+
+- Root app flow lives under `App/DailyWire/App/Root`.
+- Main tab/root flow lives under `App/DailyWire/UI/Main/Root`.
+- Shared navigation support lives under `App/DailyWire/UI/Coordinator`.
+- Deeplink parsing and routing support lives under `App/DailyWire/UI/Deeplinker`.
+- Player and mini-player navigation are coordinated with media services under `App/DailyWire/UI/Player` and `App/DailyWire/Services/Media`.
+- Some feature flows, such as Shorts, use their own scene/view model/coordinator pieces inside `Services/<feature>`.
+
+## Required Standards
+
+- Keep screen routing decisions in flow coordinators, navigation services, or view models that already own that flow.
+- Do not navigate directly from reusable cards, rows, sheets, or shared UI components when a callback/action can be sent upward.
+- Use the existing `Coordinator`, root flow, main flow, and deeplinker infrastructure before adding a new router or navigation abstraction.
+- Keep modal sheets, drawers, popups, tooltips, and temporary panels as UI state unless they need root-level navigation, deeplink support, or their own back-stack behavior.
+- Keep full-screen overlay experiences self-contained and explicit about close/back behavior.
+- Pass screen identity through typed values such as slugs, IDs, domain models, or existing route targets rather than raw URL strings.
+- Do not move a screen between root flow, main tab flow, player flow, and overlay flow unless the task explicitly requires a behavior change.
+- Keep top bar, status bar, player visibility, and tab visibility updates close to the screen or flow that owns them.
+
+## Choosing Where A Screen Belongs
+
+- Add a screen to root flow when it is outside the main tab experience, controls app launch/auth/subscription gating, or should cover the current app context.
+- Add a screen to main flow when it belongs inside the signed-in tab experience.
+- Add a modal/drawer as local UI state when dismissal returns to the same screen and no route identity is needed.
+- Add playback-only routing through media services when selecting content should play without opening a new detail screen.
+- Add deeplink mapping only when external or stored URL input needs to open the screen.
+
+## Do / Don't
+
+Do:
+
+```swift
+FeatureCard(
+    item: item,
+    onSelect: { viewModel.send(.itemSelected(id: item.id)) }
+)
+```
+
+Don't:
+
+```swift
+FeatureCard(item: item)
+    .onTapGesture {
+        appCoordinator.openFeature(slug: item.slug)
+    }
+```
+
+Reason: reusable UI should not instantiate navigation dependencies or decide route ownership.
+
+Do:
+
+```swift
+func send(_ action: FeatureAction) {
+    switch action {
+    case .itemSelected(let id):
+        coordinator.openFeature(id: id)
+    }
+}
+```
+
+Don't:
+
+```swift
+func send(_ action: FeatureAction) {
+    let id = "feature-id"
+    UIApplication.shared.open(URL(string: "dailywire://feature/\(id)")!)
+}
+```
+
+Reason: internal navigation should not round-trip through URL handling.
+
+## Deeplinks
+
+- URL parsing belongs in the deeplink layer.
+- Deeplink-to-destination mapping belongs in deeplink/navigation helpers, not in screen UI.
+- Playback-first deeplinks should route through media services rather than inventing fake screen destinations.
+- Unsupported external URLs should fall back to browser handling when appropriate.
+
+## Exceptions
+
+- Existing legacy flows may use older coordinator patterns. Preserve local consistency for narrow bug fixes.
+- UIKit representables may use local coordinators for delegate bridging; those coordinators should not become app routers.
+- A one-off modal can stay local to a view if it has no route identity and no cross-screen reuse.
+
+## Validation Expectations
+
+- For navigation changes, verify source screen, destination screen, back behavior, tab/player visibility, and modal dismissal.
+- For deeplink changes, add or update focused parser and routing tests.
+- For playback routing changes, verify the media path and now-playing/miniplayer behavior.
+- For overlay changes, verify the underlying tab/root state is preserved or reset intentionally.

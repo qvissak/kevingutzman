@@ -1,0 +1,107 @@
+---
+paths:
+  - "**/*.brs"
+  - "**/*.bs"
+  - "components/**/*.xml"
+  - "**/components/**/*.xml"
+  - "source/**/*.xml"
+  - "**/source/**/*.xml"
+  - "bsconfig.json"
+  - "**/bsconfig.json"
+  - "bslint.json"
+  - "**/bslint.json"
+  - "manifest"
+  - "**/manifest"
+---
+
+# Roku Testing Standards
+
+## Purpose
+
+Define what Roku changes need to prove before they are ready. Roku validation should be focused, deterministic, and proportional to risk, with device checks reserved for behavior that actually depends on Roku runtime, remote input, focus, playback, or SDK behavior.
+
+## Required Standards
+
+- Add or update tests when behavior changes materially.
+- Prefer the narrowest test that proves the behavior.
+- Keep tests close to the behavior they verify.
+- Reuse the repo's existing bslint, BrighterScript, unit-test, mock-response, packaging, and device-validation setup before adding new infrastructure.
+- Do not rely on real backend availability unless the test is explicitly an integration or contract check.
+- Never hardcode private credentials, tokens, user identifiers, device IPs, developer passwords, or production secrets in tests.
+- Always state what was validated and what could not be validated.
+
+## Test type expectations
+
+- Lint/syntax checks: BrightScript style, forbidden statements, config validity, and SceneGraph XML parseability when the toolchain supports it.
+- Unit tests: pure mappers, presenters, validators, formatters, entitlement rules, URL/deeplink parsing, cache policy, retry policy, and local business rules.
+- ViewModel tests: state transitions, action handling, collaborator calls, stale-response handling, loading/error/success/empty/offline/restricted behavior, and one-off events.
+- Service/provider tests: request options, response parsing, auth/session behavior, entitlement handling, cache/refresh behavior, SDK wrapper behavior, and controlled network failure.
+- SceneGraph UI checks: node wiring, rendered state, focus entry, focus movement, selected/default state, dialogs, and retry affordances.
+- Device/manual checks: remote key behavior, playback, SDK integration, developer-channel packaging, performance-sensitive screens, and behavior that cannot be trusted from unit tests alone.
+
+## Validation by change type
+
+- BrightScript or XML style change: run bslint or the repo's equivalent.
+- Mapper, presenter, or pure logic change: focused unit test.
+- ViewModel or screen-state change: focused state/action test plus UI verification when rendered behavior changes.
+- Network/API change: mocked response tests plus real-backend checks only when contract confidence is required.
+- Cache, retry, debounce, throttle, or pagination change: test duplicate request prevention and representative failure paths.
+- Focus or remote input change: verify directional focus, default focus, back/menu behavior, repeated key input, and recovery from dialogs/overlays.
+- Playback or entitlement change: verify allowed, restricted, failed, and recovery paths on the closest available Roku target.
+- Manifest, packaging, config, SDK, or dependency change: lint and package/compile the channel when the environment allows it.
+- Docs-only change: factual consistency review; no build required unless examples are intended to run.
+
+## Preferred patterns
+
+- Use deterministic fakes for network, storage, auth, entitlement, playback, analytics, and SDK collaborators.
+- Use small fixture responses that cover edge cases instead of broad production payloads.
+- Assert state transitions and result categories, not only that a value is non-invalid.
+- Test mappers against missing fields, empty arrays, invalid types, and variant backend shapes.
+- Prefer one focused validation pass first; broaden only when the change touches shared behavior or integration boundaries.
+- Keep manual validation notes concrete: target device or environment, flow, expected states, and any blocked checks.
+
+## Do / Don't
+
+Do:
+
+```brightscript
+result = presentFeatureResult({ status: "success", items: [] })
+
+assertEqual(result["pageState"], "empty")
+assertEqual(result["items"].Count(), 0)
+```
+
+Don't:
+
+```brightscript
+result = realProductionService.getFeature("home")
+
+assertTrue(result <> invalid)
+```
+
+Reason: default automated tests should not depend on backend availability or production data.
+
+Do:
+
+```brightscript
+state = viewModel.send({ type: "refresh", requestId: "newer" })
+olderState = viewModel.receiveResult({ requestId: "older", status: "success" })
+
+assertEqual(olderState["requestId"], "newer")
+```
+
+Don't:
+
+```brightscript
+sleep(1000)
+assertTrue(m.items.Count() > 0)
+```
+
+Reason: async tests should prove ordering and state transitions instead of waiting on wall-clock time.
+
+## Validation Expectations
+
+- Failed validation must not be reported as passed.
+- If validation is blocked by environment, credentials, network, SDK, package, or Roku device availability, report the exact blocker.
+- UI, focus, playback, SDK, and device-specific claims require actual validation on a suitable target.
+- Every bug fix should include a test that would have failed before the fix unless the repo's test harness makes that impossible. When it is impossible, state why and cover the behavior at the closest practical layer.

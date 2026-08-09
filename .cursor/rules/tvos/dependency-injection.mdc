@@ -1,0 +1,98 @@
+---
+description: tvOS Dependency Injection — tvOS / Swift platform
+globs: ["DailyWire/**/*.swift","DailyWireTests/**/*.swift","DailyWire.xcodeproj/**/*.pbxproj","**/*tvOS*.swift","**/*tvOS*.pbxproj"]
+alwaysApply: false
+---
+
+# tvOS Dependency Injection
+
+## Purpose
+
+The tvOS app already uses dependency injection through a lightweight `DIContainer`. These rules keep new code testable without forcing a broad rewrite of legacy code or introducing a new DI framework before the team agrees it is needed.
+
+## Current Project Pattern
+
+- `DIContainer` lives under `DailyWire/Helpers/DI`.
+- App-wide registrations are centralized in `DIContainer+registerAll.swift`.
+- `AppDelegate` registers app services during launch.
+- Routers, destination builders, and app composition points may use `DIContainer` to supply shared services to created objects.
+- Many legacy call sites still inject concrete classes directly. Do not treat that as the preferred pattern for new code.
+
+## Required Standards
+
+- Prefer injecting protocols instead of concrete classes for services, providers, clients, analytics, auth, playback, storage, network, and other collaborators that need to be mocked or substituted.
+- New code must be written so focused unit tests can pass fake dependencies through initializers.
+- Preserve legacy concrete injection when a narrow change does not justify a broader refactor, but do not copy that pattern into new code.
+- Keep using the current `DIContainer` while it fits the app's needs.
+- Do not introduce or migrate to a third-party DI framework, such as Swinject, without team discussion and agreement.
+- Use `DIContainer` only at composition boundaries: app launch, registration setup, routers, destination builders/factories, view-controller creation, and carefully chosen view-model initializer defaults.
+- Do not resolve dependencies from UIKit views, SwiftUI views, reusable cells, buttons, layout components, or render-only UI.
+- Treat `DIContainer` as a place for reusable shared services, not one-time screen objects. Good examples include analytics, auth, remote config, playback, networking, preferences, idle service, and other app-wide collaborators.
+- Update `DailyWireTests/DIContainerTests.swift` whenever a new app-wide dependency is registered so missing registrations fail in tests instead of at runtime.
+
+## View Model Initializers
+
+Prefer explicit constructor injection:
+
+```swift
+@MainActor
+final class FeatureViewModel {
+    private let analytics: AnalyticsProtocol
+    private let authService: AuthServiceProtocol
+
+    init(
+        analytics: AnalyticsProtocol,
+        authService: AuthServiceProtocol
+    ) {
+        self.analytics = analytics
+        self.authService = authService
+    }
+}
+```
+
+For now, default parameters that resolve from `DIContainer` are acceptable when they keep call sites simple and tests can still pass fakes:
+
+```swift
+@MainActor
+final class FeatureViewModel {
+    private let analytics: AnalyticsProtocol
+
+    init(
+        analytics: AnalyticsProtocol = DIContainer.shared.resolve()
+    ) {
+        self.analytics = analytics
+    }
+}
+```
+
+Do not resolve inside methods or UI event handlers:
+
+```swift
+func onAppear() {
+    let analytics = DIContainer.shared.resolve(AnalyticsProtocol.self)
+    analytics.trackScreen("feature")
+}
+```
+
+Reason: dependencies should be visible at construction time so tests can replace them.
+
+## Composition Boundaries
+
+Navigation ownership belongs in `standards/tvos/navigation.md`. From a dependency-injection perspective, routers and destination builders/factories are allowed composition boundaries: they may resolve shared services from `DIContainer` and pass them into the objects they create.
+
+Views and reusable UI components should receive state and callbacks from their owner instead of resolving services directly.
+
+## Registration Rules
+
+- Register protocol types when a protocol exists or should exist for testability.
+- Register concrete classes only when the type is truly app-wide, stable, and not useful to substitute in tests.
+- Keep registrations centralized in `DIContainer+registerAll.swift` or a clearly named helper called from `registerAll()`.
+- When one registered service depends on another, resolve through the container only inside the registration closure or pass already-created shared instances explicitly.
+- Do not register view controllers, view models, cells, SwiftUI views, or per-screen data models unless the team has agreed that the object should be app-wide.
+
+## Validation Expectations
+
+- For every new registration, update `DailyWireTests/DIContainerTests.swift` to resolve it.
+- For every new protocol-backed collaborator, add or update focused tests that inject a fake when behavior changes.
+- For DI changes, compile the affected tvOS target or run the narrowest available DI/test target when the environment allows it.
+- If a dependency cannot be protocol-backed yet because of legacy constraints, state that in the PR and keep the change narrow.

@@ -1,0 +1,242 @@
+---
+paths:
+  - "**/*.swift"
+  - "**/*.pbxproj"
+---
+
+# iOS Foundations
+
+## Rule Priority
+
+1. Safety, privacy, auth, entitlement, and platform constraints override all other rules.
+2. Existing project patterns override generic architecture preferences.
+3. Narrow bug fixes may preserve local legacy style, but must not introduce new legacy dependencies.
+4. New abstractions require evidence from the current codebase and at least one concrete caller or test seam.
+5. When standards conflict, follow the more specific standard first:
+   CarPlay > Navigation/Data/Architecture > general Swift/iOS conventions.
+
+## SwiftUI view standards
+
+Use this structure by default for screen views and reusable UI components:
+
+```swift
+// MARK: - Public view. Used by other components in the application.
+struct FeatureView: View {
+
+    @StateObject private var viewModel: FeatureViewModel
+
+    var body: some View {
+        StatelessFeatureView(
+            data: viewModel.data,
+            onAction: viewModel.onAction
+        )
+    }
+}
+
+// MARK: - Internal stateless representation. Used for static previews of different states
+fileprivate struct StatelessFeatureView: View {
+    let data: String
+    var onAction: () -> Void = {}
+
+    var body: some View {
+        Button(data, action: onAction)
+    }
+}
+
+// MARK: - Previews. Treat these as visual unit tests to cover all states of the component.
+#if DEBUG
+
+#Preview("Light mode") {
+    StatelessFeatureView(data: "hello", action: { })
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark mode") {
+    StatelessFeatureView(data: "hello", action: { })
+        .preferredColorScheme(.dark)
+}
+
+#endif
+```
+
+Apply these without exception:
+
+- View struct names MUST use PascalCase.
+- Expose data through stored properties (`let` for inputs, `@Binding` for two-way state owned by a parent). Expose actions as closure properties (`onTap: () -> Void`) so the caller controls behavior.
+- Let callers apply styling and layout via SwiftUI view modifiers. Do not bake fixed frames, paddings, fonts, or colors into reusable components unless they are part of the component's visual identity.
+- Use `DW.Text` for user-facing strings that should be localized (uses `Bundle.main.localizedString` under the hood). Do not pass raw `String` literals to `Text`.
+- Keep `body` focused on rendering and simple event wiring. Business logic does not belong in `body` or in event closures, it belongs in a view model or service.
+
+### Preview conventions
+
+- Every reusable view and screen MUST have at least one preview. Ideally, cover all the possible component states.
+- Previews MUST use the `#Preview` macro and MUST live at the bottom of the file.
+
+## Dependency injection
+
+We use Swinject. Use dependency injection to separate responsibilities and make units testable in isolation.
+
+View models MUST use constructor injection. They MUST NOT reach into the Swinject container themselves, though they can use defaults from the container
+
+```swift
+@MainActor
+final class FeatureViewModel: ObservableObject {
+    @Published private(set) var uiState = FeatureUIState()
+
+    private let repository: FeatureRepository
+    private let analytics: AnalyticsManager
+
+    init(repository: FeatureRepository = Injector.resolve(), analytics: AnalyticsManager = Injector.resolve()) {
+        self.repository = repository
+        self.analytics = analytics
+    }
+}
+```
+
+Repositories, use cases, wrappers, managers, and similar classes MUST also use constructor injection. Pick a Swinject scope that matches their lifecycle and statefulness.
+
+Register dependencies in `Assembly` types and load them through the `Assembler` (inside `Injector` under `Module/`). Group registrations by feature or layer:
+
+```swift
+final class FeatureAssembly: Assembly {
+    func assemble(container: Container) {
+        container.register(FeatureRepository.self) { resolver in
+            FeatureRepositoryImpl(api: resolver.resolve(FeatureAPI.self)!)
+        }
+        .inObjectScope(.container) // singleton — holds cache state
+
+        container.register(FeatureWrapper.self) { resolver in
+            FeatureWrapper(dependency: resolver.resolve(DependencyClass.self)!)
+        }
+        // default .graph scope — stateless helper
+
+        container.register(FeatureViewModel.self) { resolver in
+            FeatureViewModel(
+                repository: resolver.resolve(FeatureRepository.self)!,
+                analytics: resolver.resolve(AnalyticsManager.self)!
+            )
+        }
+    }
+}
+```
+
+Scope rules:
+
+- `.inObjectScope(.container)` — classes or provided objects that hold state, own caches, or must remain the same instance for correctness.
+- Default `.graph` scope — stateless helpers and lightweight objects that do not require singleton behavior.
+- `.transient` — only when every call site genuinely needs a fresh instance.
+
+Do not create dependencies ad hoc inside view models, views, repositories, use cases, wrappers, managers, or other application classes. If an object can be injected, it MUST be injected. If an object must be constructed manually, that construction MUST live in either a dedicated factory class or a Swinject registration, so creation logic stays centralized and testable.
+
+**Don't**
+
+```swift
+final class FeatureViewModel: ObservableObject {
+    private let decoder = JSONDecoder()
+    private let formatter = PhoneNumberKit()
+}
+```
+
+**Do**
+
+```swift
+final class FeatureViewModel: ObservableObject {
+    private let decoder: JSONDecoder
+    private let formatter: PhoneNumberFormatter
+
+    init(decoder: JSONDecoder, formatter: PhoneNumberFormatter) {
+        self.decoder = decoder
+        self.formatter = formatter
+    }
+}
+```
+
+Avoid logic in views. Route user actions into the view model and let injected dependencies handle branching, side effects, and analytics.
+
+**Don't**
+
+```swift
+FeatureRow(
+    onTap: {
+        if uiState.flag {
+            viewModel.action1()
+        } else {
+            viewModel.action2()
+        }
+        analyticsManager?.trackTap()
+    }
+)
+```
+
+**Do**
+
+```swift
+FeatureRow(onTap: viewModel.onRowTapped)
+
+@MainActor
+final class FeatureViewModel: ObservableObject {
+    private let analytics: AnalyticsManager
+
+    init(analytics: AnalyticsManager) {
+        self.analytics = analytics
+    }
+
+    func onRowTapped() {
+        if uiState.flag {
+            action1()
+        } else {
+            action2()
+        }
+        analytics.trackTap()
+    }
+}
+```
+
+## State management flow
+
+Follow unidirectional data flow:
+
+```text
+UI event (View)
+    ↓
+view-model method
+    ↓
+mutate @Published state
+    ↓
+ObservableObject publishes change
+    ↓
+@StateObject / @ObservedObject in the View
+    ↓
+SwiftUI re-renders
+```
+
+Use this as the default mental model:
+
+- Views emit events upward by calling view-model methods.
+- View models receive events and decide what to do.
+- View models update a single observable state holder.
+- The view reads state from the view model via `@StateObject` (when the view owns the view model's lifecycle) or `@ObservedObject` (when a parent owns it).
+- View models MUST be `@MainActor` so `@Published` mutations and SwiftUI observation stay on the main thread.
+- Re-rendering is the result of state change, not a place to perform work.
+
+Prefer a single `@Published` UI state struct over many independent `@Published` properties so the view always sees one consistent snapshot, and expose it as `private(set)` so only the view model can mutate it:
+
+```swift
+struct FeatureUIState {
+    var isLoading: Bool = false
+    var items: [FeatureItem] = []
+    var errorMessage: String? = nil
+}
+
+@MainActor
+final class FeatureViewModel: ObservableObject {
+    @Published private(set) var uiState = FeatureUIState()
+
+    func load() {
+        uiState.isLoading = true
+        // ...
+    }
+}
+```
+
+Do not mutate UI state directly from the view. Do not bypass the view model by putting branching, mutation, or side effects inside event closures when that logic can live in the view model.

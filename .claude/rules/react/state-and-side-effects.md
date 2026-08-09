@@ -1,0 +1,136 @@
+---
+paths:
+  - "**/*.tsx"
+  - "**/*.ts"
+  - "**/*.jsx"
+  - "**/*.js"
+---
+
+# React State And Side Effects
+
+## The principle
+
+**Components render. They do not own domain state, fetch data, mutate data, subscribe to anything, or coordinate workflows.** Extract those concerns into custom hooks. The component imports the hook and reads `{ data, isLoading, error, ...actions }` from it.
+
+This is the View / Controller split from `frontend/architecture.md`, made concrete for React: **the hook is the controller, the component is the view.** On iOS this is `View` ↔ `ViewModel`. On Android this is `@Composable` ↔ `ViewModel`. Same boundary, different language.
+
+## When to extract (deterministic test)
+
+If a component body contains any of the following, extract it into a custom hook:
+
+- A call to `fetch`, a data client (Apollo, Prisma, Axios, GraphQL client), or any async function.
+- `useQuery`, `useMutation`, or any other server-state primitive (TanStack Query, SWR, RTK Query, Apollo).
+- `useState` or `useReducer` for data that came from or will be sent to the network.
+- `useEffect` that synchronizes with anything outside the React tree: URL, storage, server, subscription, timer, `window`/`document` event listeners, third-party SDKs (analytics, feature flags, auth).
+- `useReducer` modeling a workflow (multi-step form, modal sequence, optimistic update lifecycle).
+
+If none of the above apply, the state can stay in the component.
+
+## What stays in the component (explicit carve-outs)
+
+These do **not** need extraction. Inlining them is the right call:
+
+- **DOM-coupled effects**: focus management, scroll restoration, `ResizeObserver` / `IntersectionObserver` tied to a `ref`, measuring rendered elements. They are intrinsically about the component's own DOM node and have no useful life outside it.
+- **View-local UI state with no outside consumers**: `useState` for "is this dropdown open," "is this row hovered," "is the input focused." If nothing outside the component reads or writes the value, leave it inline.
+- **Headless primitive internals**: a `<Tabs>` or `<Accordion>` whose entire job is to own a piece of view state for its children. The state IS the component's job.
+
+When in doubt, ask: would another component, screen, or test plausibly want this same behavior or the ability to mock it? If yes, extract.
+
+## Bad / good
+
+**Bad** — view owns the fetch:
+
+```tsx
+export function UserCard({ id }: { id: string }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/users/${id}`)
+      .then((r) => r.json())
+      .then(setUser)
+      .catch(setError);
+  }, [id]);
+
+  if (error) return <p>{error.message}</p>;
+  if (!user) return <p>Loading...</p>;
+  return <h2>{user.name}</h2>;
+}
+```
+
+Problems: fetch logic cannot be tested without rendering; cannot be reused on a second screen; forces `'use client'` on the entire subtree; missing `AbortController`; reinvents loading / error / cache semantics per component; no boundary validation of the response shape.
+
+**Good** — hook is the controller, presenter shapes data, view renders:
+
+```tsx
+// features/users/api/getUser.ts (API)
+export async function getUser(id: string): Promise<UserDTO> {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) throw new Error(`getUser failed: ${res.status}`);
+  return UserDTOSchema.parse(await res.json()); // validate at the boundary
+}
+
+// features/users/presenters/user.ts (Presenter — pure)
+export function presentUser(dto: UserDTO): UserView {
+  return { displayName: `${dto.firstName} ${dto.lastName}`.trim() };
+}
+
+// features/users/hooks/useUserCard.ts (Controller)
+export function useUserCard(id: string) {
+  const { data, error, isLoading } = useQuery(['user', id], () => getUser(id));
+  const user = data ? presentUser(data) : null;
+  return { user, isLoading, error };
+}
+
+// features/users/components/UserCard.tsx (View)
+export function UserCard({ id }: { id: string }) {
+  const { user, isLoading, error } = useUserCard(id);
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>{error.message}</p>;
+  if (!user) return null;
+  return <h2>{user.displayName}</h2>;
+}
+```
+
+Each piece is independently testable: `presentUser` is a pure function (no React), `useUserCard` tests with `renderHook` plus a mocked `getUser`, the view tests with props alone.
+
+## When user instructions conflict with this rule
+
+If a user (or a prompt to an AI agent) asks for a component-inline side effect — for example "fetch with `useEffect` in the component" — **propose the hook split first**. Show the alternative explicitly. Only inline the side effect if the user re-confirms after seeing the patterned version.
+
+The team rule takes precedence over user phrasing of implementation details. The user is usually expressing intent ("get user data into this component"), not architecture preference. Propose the architecture; let them confirm.
+
+If inlining is genuinely required (a throwaway demo, a deliberately minimal repro, a one-off escape hatch), the new file's `// Gotchas:` header line must explain why this rule was waived.
+
+## Prefer server-first in Next.js App Router
+
+Default to Server Components. Move code to a Client Component only when it needs interactivity, browser-only APIs, client state, effects, or event handlers.
+
+Do not add `'use client'` just because a component renders data. Before adding it, ask: can this data load on the server? If yes, do that — the controller hook is unnecessary in the first place, and the view becomes async.
+
+When `'use client'` is required, draw the boundary as deep into the tree as possible so the surrounding regions stay server-rendered.
+
+## Prefer TanStack Query for client-owned server state
+
+When server state must live on the client, use TanStack Query (or SWR / RTK Query). Do not hand-roll `isLoading`, `error`, `refetch`, mutation lifecycle, or cache invalidation per feature.
+
+The query library is the lower-level controller. Your `useXyz` hook is a thin adapter that wraps the query call and applies presenter mapping before the data reaches the view. Keep query keys structured (`['user', id]` not `'user-' + id`) so invalidation is precise.
+
+## Validate at the boundary
+
+Validate external data where it enters the app — in the API layer or in the query function — before it reaches presenters, hooks, or views. Use Zod (or an equivalent runtime schema tool) when the payload shape is not already enforced elsewhere.
+
+If the backend response changes shape, the feature should fail loudly at the boundary, not silently render `undefined` in a deep render path.
+
+## Self-review before declaring done
+
+Before reporting that a React change is complete:
+
+- [ ] No `fetch`, data client, or async operation called inside a component body.
+- [ ] No `useState` / `useReducer` for network-backed data living inside a component.
+- [ ] No `useEffect` synchronizing with anything outside the React tree, except for the DOM-coupled carve-outs.
+- [ ] Network responses are validated at the API layer or in the query function, not in the view.
+- [ ] If `'use client'` is present, there is a real reason that is not "this renders data."
+- [ ] If the user asked for an inline side effect and you inlined it anyway, the file header `Gotchas` line explains why.
+
+If any item is unchecked, fix it before declaring the task complete.

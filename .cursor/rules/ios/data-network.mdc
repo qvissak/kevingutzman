@@ -1,0 +1,176 @@
+---
+description: iOS Data And Network Standards — iOS / Swift platform
+globs: ["**/*.swift","**/*.pbxproj"]
+alwaysApply: false
+---
+
+<!--
+What: iOS data and network standards for the DailyWire app.
+Who calls it / when: Engineers and AI agents read this before changing API, middleware, mapping, cache, or refresh behavior.
+Gotchas: Middleware DTOs are not UI models; normalize them before UI consumption.
+-->
+
+# iOS Data And Network Standards
+
+## Purpose
+
+Define how the existing iOS project should call backend services, transform data, handle errors, and expose results to the rest of the app.
+
+## Current Project Pattern
+
+- Networking code lives under `App/DailyWire/Services/Networking`.
+- `BaseClient`, `SessionManager`, `RequestRetryExecutor`, and `APIError` own shared transport behavior.
+- Middleware endpoint code lives under `Services/Networking/Middleware`.
+- Middleware DTOs and response models live under `Services/Networking/Middleware/Models`.
+- `Middleware.Client` is registered in Swinject and also exposed behind protocols such as `MiddlewareClient`, `MediaNetworkService`, and `AppSettingsNetworkService`.
+- Feature services/providers such as live content, continue watching, follow hosts, EPG, Shorts, and CarPlay consume middleware and map into app behavior.
+- Mock middleware responses and stubs exist for deterministic tests.
+
+```text
+App/DailyWire/Services/Networking/
+├── BaseClient/
+│   ├── BaseClient.swift
+│   ├── APIError.swift
+│   ├── RequestRetryExecutor.swift
+│   └── SessionManager.swift
+├── Middleware/
+│   ├── Middleware+Client.swift
+│   ├── MiddlewareClient+Protocol.swift
+│   ├── MiddlewareClientStub.swift
+│   ├── Models/
+│   └── MockResponses/
+└── LiveChatAPI/
+```
+
+## Required Standards
+
+- Shared transport behavior belongs in networking clients or helpers, not in feature view models or views.
+- Middleware DTOs represent wire format and must not leak into UI when nullability, entitlement, formatting, or availability needs normalization.
+- Feature services/providers expose app-level behavior and return domain or UI-ready models, explicit state, or typed errors.
+- Mappers convert DTOs to domain/UI models at the data boundary.
+- Network errors, parsing errors, HTTP errors, authentication errors, connectivity errors, and unsupported-content cases must be represented explicitly where callers need to respond differently.
+- Treat force-refresh behavior as an explicit input.
+- Centralize cache, session, token, and environment behavior in networking clients or services.
+- Avoid hardcoded endpoint values, environment selectors, API keys, tokens, user identifiers, or secrets in feature code and standards examples.
+- Do not add new networking libraries unless the existing stack cannot safely support the requirement.
+
+## Error And Privacy Boundaries
+
+- Map transport/backend errors into feature-level errors before UI handling.
+- Do not display raw backend, transport, or decoding error strings as user-facing copy.
+- Do not log secrets, tokens, session IDs, user identifiers, entitlement payloads, or raw response bodies.
+- Do not pass raw middleware DTOs into analytics.
+
+## Preferred Flow
+
+Request path:
+
+```text
+ViewModel / Coordinator
+-> Service / Provider
+-> MiddlewareClient protocol or Middleware.Client
+-> BaseClient / SessionManager
+-> Backend
+```
+
+Response path:
+
+```text
+DTO / response
+-> mapper
+-> domain or UI-ready model
+-> explicit page state / result
+-> ViewModel UI state
+```
+
+## Do / Don't
+
+Do:
+
+```swift
+final class FeatureProvider {
+    private let middlewareClient: MiddlewareClient
+    private let mapper: FeatureMapper
+
+    init(middlewareClient: MiddlewareClient, mapper: FeatureMapper) {
+        self.middlewareClient = middlewareClient
+        self.mapper = mapper
+    }
+
+    func page(slug: String, membershipPlan: String?, isForced: Bool) async throws -> FeaturePage {
+        let response = try await middlewareClient.getPostPage(
+            id: .slug(slug),
+            membershipPlan: membershipPlan,
+            isForced: isForced
+        )
+        return mapper.map(response)
+    }
+}
+```
+
+Don't:
+
+```swift
+@MainActor
+final class FeatureViewModel: ObservableObject {
+    private let client: Middleware.Client
+
+    func load() async throws {
+        uiState.items = try await client.getPostPage(
+            id: .slug("feature"),
+            membershipPlan: nil,
+            isForced: false
+        ).components
+    }
+}
+```
+
+Reason: view models should depend on app behavior, not transport details or wire shape.
+
+Do:
+
+```swift
+struct FeatureMapper {
+    func map(_ item: Middleware.ComponentItem) -> FeatureItem? {
+        guard let title = item.title, !title.isEmpty else {
+            return nil
+        }
+
+        return FeatureItem(id: item.id, title: title)
+    }
+}
+```
+
+Don't:
+
+```swift
+struct FeatureRow: View {
+    let item: Middleware.ComponentItem
+
+    var body: some View {
+        Text(item.title ?? "")
+    }
+}
+```
+
+Reason: DTO nullability and wire quirks should be normalized before UI.
+
+## Caching And Refresh
+
+- Treat refresh as an explicit argument such as `isForced` or `forceRefresh`.
+- Preserve offline behavior when changing caching, persistence, or refresh logic.
+- Do not let UI components know HTTP cache headers, token refresh behavior, or session ID wiring.
+- Clear or refresh caches on auth/session changes when cached data depends on entitlement or user identity.
+
+## Exceptions
+
+- A very small provider can return DTOs internally if the caller immediately maps them before exposing data to UI.
+- Existing code may mix service and client responsibilities. New code should keep layers separate.
+- Real-backend checks are allowed when contract confidence is the purpose, but automated feature tests should prefer deterministic mocked responses.
+
+## Validation Expectations
+
+- For new endpoints or request options, test success and representative failure cases.
+- For mappers, test null, missing, entitlement, and variant fields when middleware contracts permit them.
+- For cache or force-refresh changes, test both cached and refresh paths.
+- For authentication-sensitive requests, verify session/token behavior without logging secrets or user identifiers.

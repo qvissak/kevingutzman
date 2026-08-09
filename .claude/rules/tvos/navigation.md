@@ -1,0 +1,143 @@
+---
+paths:
+  - "DailyWire/**/*.swift"
+  - "DailyWireTests/**/*.swift"
+  - "DailyWire.xcodeproj/**/*.pbxproj"
+  - "**/*tvOS*.swift"
+  - "**/*tvOS*.pbxproj"
+---
+
+# tvOS Navigation
+
+## Purpose
+
+Define how tvOS screens, player flows, drawers, overlays, and nested feature flows should be opened without spreading navigation decisions through views or reusable UI components.
+
+## Current Project Pattern
+
+- Screen code lives under `DailyWire/Screens`.
+- Shared routing helpers live in `UIViewController+Routing.swift`.
+- Feature routers such as `ResultsRouter`, `DetailsRouter`, and `MoreInfoRouter` own navigation for their flows.
+- Routers that need stack control are initialized with a `UINavigationController`, keep it weak, and push, present, pop, or replace stack state through that navigation controller.
+- Routers may derive the current presenter from `navigationController?.topViewController` when they need to present modals or player flows.
+- Some existing routers build the destination objects directly. Builder/factory abstractions are not a broad project pattern yet, but they are welcome when reuse or complexity justifies them.
+
+## Required Standards
+
+- Keep navigation execution in routers or clearly named navigation helpers.
+- Initialize routers with the `UINavigationController` that owns the flow when the router needs stack control.
+- Views and view controllers should notify their view model about UI events; the view model owns the router and asks it to navigate.
+- Do not navigate directly from reusable cells, buttons, SwiftUI views, UIKit views, or render-only components.
+- Reusable UI should emit callbacks or actions upward so the screen/view model can decide what product action happened.
+- Pass destination identity through typed values such as IDs, slugs, items, analytics screen values, or domain models instead of raw URL strings.
+- Keep player, Fast Channel, shorts, auth, purchase, drawer, modal, and tab/sidebar transitions explicit about presentation style and dismissal/back behavior.
+- Preserve focus behavior when changing navigation. A route change is not complete if the destination focus entry point or return focus is broken.
+- Do not introduce a new router, builder, factory, or child-router abstraction unless it removes real duplication, isolates a reusable flow, or keeps navigation code understandable.
+
+## Router Responsibilities
+
+Routers own navigation decisions: pushing, presenting, dismissing, replacing navigation-controller state, and delegating to another flow. A router may also compose the destination it opens when construction is simple and local.
+
+```swift
+final class FeatureRouter {
+    private weak var navigationController: UINavigationController?
+    private var presentingVC: UIViewController? { navigationController?.topViewController }
+
+    init(navigationController: UINavigationController) {
+        self.navigationController = navigationController
+    }
+
+    func showFeature(id: String) {
+        let viewModel = FeatureViewModel(
+            analytics: DIContainer.shared.resolve(),
+            authService: DIContainer.shared.resolve()
+        )
+        let viewController = FeatureViewController(viewModel: viewModel)
+        navigationController?.pushViewController(viewController, animated: true)
+    }
+}
+```
+
+Reason: the view model asks for a product action, while the router decides how that action maps to tvOS navigation.
+
+## Builders And Factories
+
+When destination construction is shared across routers, complex enough to obscure navigation, or useful to reuse in tests, introduce a small builder or factory for that destination.
+
+```swift
+protocol FeatureViewControllerBuilding {
+    func makeFeatureViewController(id: String) -> UIViewController
+}
+
+final class FeatureRouter {
+    private let builder: FeatureViewControllerBuilding
+    private weak var navigationController: UINavigationController?
+
+    init(
+        navigationController: UINavigationController,
+        builder: FeatureViewControllerBuilding
+    ) {
+        self.navigationController = navigationController
+        self.builder = builder
+    }
+
+    func showFeature(id: String) {
+        let viewController = builder.makeFeatureViewController(id: id)
+        navigationController?.pushViewController(viewController, animated: true)
+    }
+}
+```
+
+Builders/factories should build destinations, not decide when navigation happens. Keep route timing, presentation style, stack replacement, and dismissal behavior in the router.
+
+## Router Composition
+
+Larger routers may compose smaller routers when a nested or reusable flow has its own navigation rules. Pass the owning `UINavigationController` into the child router when both flows share the same navigation stack. Create a dedicated navigation controller when the child flow is presented as its own modal stack.
+
+Do not split routers only because a file is long. Split when the nested flow can be named, reused, tested, or understood independently.
+
+## Do / Don't
+
+Do:
+
+```swift
+FeatureCell(
+    item: item,
+    onSelect: { viewModel.onFeatureSelected(id: item.id) }
+)
+
+final class FeatureViewModel {
+    private let router: FeatureRouting
+
+    init(router: FeatureRouting) {
+        self.router = router
+    }
+
+    func onFeatureSelected(id: String) {
+        router.showFeature(id: id)
+    }
+}
+```
+
+Don't:
+
+```swift
+FeatureCell(item: item)
+    .onTapGesture {
+        DIContainer.shared.resolve(FeatureRouter.self).showFeature(id: item.id)
+    }
+
+FeatureCell(
+    item: item,
+    onSelect: { router.showFeature(id: item.id) }
+)
+```
+
+Reason: UI should not resolve navigation dependencies, own routers, or decide route ownership. UI reports events to the view model; the view model requests navigation from its router.
+
+## Validation Expectations
+
+- For navigation changes, verify source screen, destination screen, focus entry, back/menu behavior, and dismissal behavior.
+- For stack replacement changes, verify the previous stack is intentionally preserved or removed.
+- For player or overlay changes, verify playback state, focus return, and modal/tab/sidebar visibility.
+- For router builder/factory changes, add or update focused tests when construction or routing logic changes.

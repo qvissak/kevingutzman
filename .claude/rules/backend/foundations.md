@@ -1,0 +1,219 @@
+---
+paths:
+  - "**/server/**"
+  - "**/api/**"
+  - "**/cmd/**"
+  - "**/internal/**"
+  - "**/*.go"
+  - "**/*.py"
+  - "**/*.sql"
+  - "**/*.tf"
+  - "**/*.tfvars"
+  - "**/*.tf.json"
+  - "**/cdk/**"
+  - "**/cdk.json"
+  - ".github/workflows/**"
+  - "**/*.sh"
+  - "**/*.bash"
+---
+
+# Backend Foundations
+
+## Clean Architecture boundaries
+
+Use Robert C. Martin's Clean Architecture as the default mental model:
+
+- **Domain / entities:** business concepts, invariants, and pure rules. No framework, database, HTTP, cache, queue, or cloud SDK dependencies.
+- **Use cases / application services:** orchestration for one user or system action. They call interfaces, enforce workflow rules, and return explicit results.
+- **Interface adapters:** handlers, controllers, serializers, DAOs, gateway implementations, and presenters that translate between the outside world and use cases.
+- **Frameworks / drivers:** web framework, database clients, Redis or Valkey clients, queues, AWS SDKs, metrics libraries, and process wiring.
+
+Dependencies MUST point inward. A handler may call a use case; a use case MUST NOT import an HTTP framework, SQL client, Redis client, ECS helper, or metrics SDK directly. Define ports/interfaces at the use-case boundary and implement them in the outer layer.
+
+Keep handlers thin. They parse input, authenticate/authorize, call a use case, map the result to a response, and emit request-scoped telemetry. Business rules do not belong in route handlers, queue consumers, cron entrypoints, or ORM callbacks.
+
+Use cases are allowed to orchestrate multiple collaborators because they model an application action. Keep that orchestration explicit and testable, and move durable business invariants into entities when the rule belongs to the domain instead of one workflow.
+
+Entities are allowed to contain behavior that protects invariants, derives domain values, or answers domain questions. Do not reduce entities to anonymous DTO bags when the rule naturally belongs with the business concept. Entities still must stay pure: they do not call DAOs, APIs, caches, queues, metrics, or cloud SDKs.
+
+DAOs, formerly known as Repositories in older code, are the persistence carve-out. A DAO may know about SQL, ORM models, schema names, query shape, pagination cursors, and database-specific error handling. It should expose domain-oriented methods to use cases and return explicit domain/data results, not leak raw rows, SQL clients, or transaction implementation details across the boundary.
+
+## SOLID, DI, DRY, and KISS
+
+Use SOLID principles as practical review heuristics:
+
+- One class, function, or module should have one clear reason to change.
+- Add behavior through small collaborators instead of editing large condition-heavy objects.
+- Depend on interfaces or protocols at boundaries, not concrete infrastructure clients.
+- Keep interfaces narrow and owned by the consumer when possible.
+
+Dependency injection is required for services, DAOs, clients, clocks, ID generators, feature flags, metrics emitters, and other side-effecting dependencies. Wire concrete implementations at application startup. Do not reach into globals, module-level singletons, service locators, or environment lookups from business logic.
+
+Required dependencies must be treated as required. Do not add per-request nil guards for collaborators that are guaranteed by construction, startup wiring, or the framework's lifecycle. Those branches are dead code, hide wiring bugs, add noisy metrics, and teach generated code to handle impossible states. If a dependency can actually be absent, make that optionality explicit in the type, constructor, or feature flag and document why.
+
+**Bad**
+
+```go
+if m.dbClient == nil || m.dbClient.GetReadReplicaDB() == nil {
+	logger.Error("missing read replica database client")
+	writeJSONApiError(newServerError(), w)
+	return
+}
+
+if m.emfDAO != nil {
+	m.emfDAO.AddMetricCount("Feature.Asset", float64(len(assets)))
+}
+```
+
+**Good**
+
+```go
+db := m.dbClient.GetReadReplicaDB().WithContext(ctx)
+assets, err := listAssets(db)
+if err != nil {
+	m.emfDAO.AddMetricCount("Feature.DatabaseError", 1)
+	writeJSONApiError(newServerError(), w)
+	return
+}
+
+m.emfDAO.AddMetricCount("Feature.Asset", float64(len(assets)))
+```
+
+Apply DRY to business rules and infrastructure wiring that would diverge if duplicated. Apply KISS before introducing abstractions. Do not create a generic framework for one use case; do extract repeated rules or repeated error-prone patterns once reuse is real.
+
+## Language standards
+
+Follow the standard best practices for the language and the repo's toolchain.
+
+For Go:
+
+- Pass `context.Context` through request-scoped work and honor cancellation/timeouts.
+- Return errors explicitly, wrap them with useful context, and avoid swallowing failures.
+- Keep interfaces small, usually defined near the consumer.
+- Avoid goroutine leaks; every goroutine must have a clear lifetime and shutdown path.
+- Use table-driven tests for branching behavior and edge cases.
+- Run the repo's formatting, linting, race, and test commands before declaring done.
+
+For Python:
+
+- Use type hints on public functions and meaningful internal boundaries.
+- Use context managers for resources and close network, file, and database handles.
+- Avoid mutable default arguments and hidden module-level state.
+- Raise or return errors consistently with the surrounding code; do not mix styles casually.
+- Keep data-shaping explicit with dataclasses, Pydantic models, typed dicts, or local project conventions.
+- Run the repo's formatter, linter, type checker, and tests when those tools exist.
+
+For TypeScript:
+
+- Treat TypeScript as backend scope only when writing CDK.
+- Use the repo's CDK patterns, typed constructs, and lint/typecheck setup.
+- Do not introduce TypeScript application-service code under this backend standard unless the repo explicitly scopes backend services that way.
+
+For Bash:
+
+- Use Bash for small operational glue only; move complex logic into a typed/tested language.
+- Prefer strict mode when compatible with the surrounding script: `set -euo pipefail`.
+- Quote variable expansions, handle unset inputs, and avoid leaking secrets through `set -x` or command output.
+- Make scripts idempotent when they deploy, migrate, seed, or clean up backend resources.
+
+## Naming and complexity
+
+Names MUST be concise, intuitive, and specific to the domain. Prefer `subscriptionDao`, `entitlementPolicy`, or `renewalWindow` over generic names like `manager`, `processor`, `data`, or `obj`. Avoid clever abbreviations unless they are established domain terms.
+
+Keep cyclomatic complexity low to medium. When a function accumulates deep nesting, many branches, mixed responsibilities, or hard-to-test paths, split it into named helpers or use-case collaborators. Complex branching MUST have focused unit tests for each meaningful branch.
+
+Prefer simple control flow over cleverness. A reviewer should be able to understand the happy path, failure paths, and side effects without simulating the entire service in their head.
+
+## Testing and coverage
+
+Unit tests are required for domain logic, use cases, policy decisions, data mappers, cache behavior, and error handling. New or changed backend code should maintain high line coverage and high branch coverage for the files it touches. Coverage is a floor, not the goal: tests must assert behavior, edge cases, and failure modes, not just execute lines.
+
+Use injected fakes or mocks for infrastructure dependencies in unit tests. Use integration or contract tests for database queries, cache integration, queues, third-party clients, and serialization boundaries. Do not replace small unit tests with only end-to-end tests.
+
+Every bug fix should include a test that would have failed before the fix unless the repo's test harness makes that impossible. When it is impossible, state why in the PR and cover the behavior at the closest practical layer.
+
+## Security and input handling
+
+Validate external input at the boundary before it reaches a use case. This is especially important for POST bodies, query parameters, path parameters, headers, and webhook payloads. Use schema validation, type coercion, allow-lists, max lengths, numeric ranges, enum checks, and normalization that match the endpoint contract.
+
+Database access MUST use parameterized queries, prepared statements, or the query builder's safe binding API to prevent SQL injection. Prefer `?` placeholders where the local SQL library supports them, or the library-specific equivalent such as numbered placeholders or named parameters. Never build SQL by concatenating or interpolating user-controlled values.
+
+Dynamic SQL needs extra care. Values belong in bound parameters; dynamic identifiers such as table names, column names, sort keys, and directions must come from explicit allow-lists. Sanitizing input is not a substitute for parameterized queries.
+
+Authorization and tenant scoping must be enforced before data access returns protected records. Queries that depend on account, tenant, subscription, or entitlement state should include those constraints in the query or in a clearly tested policy layer.
+
+Do not log sensitive information. Logs, metrics, traces, errors, and CI output must not include passwords, tokens, API keys, cookies, auth headers, session IDs, payment data, private user data, raw request bodies, or secrets loaded from AWS/GitHub/CI environments. Redact or hash only when the resulting value is safe and useful for diagnosis.
+
+## Data access and caching
+
+Treat L3 as the source of truth. Usually L3 is RDS/Postgres; rarely, L3 can be an authoritative API call when another system owns the record. Use caches deliberately:
+
+- **L1 per request:** memoize repeated lookups or computed values only for the lifetime of one request/job. This is the safest default for avoiding duplicate work inside one execution.
+- **L1 per host/process:** cache only immutable or slow-changing data with explicit TTLs, bounded memory, tenant-safe keys, and invalidation behavior that is acceptable if one host is stale.
+- **L2 Redis/Valkey:** use for shared cache state across hosts when repeated L3 reads are material, the TTL/invalidation story is explicit, and stampede behavior is controlled.
+- **L3 RDS/Postgres or authoritative API:** remains authoritative. Never let cache state become the only source of truth for business-critical data.
+
+Instrument cache hit rate, miss rate, latency, error rate, evictions when available, and fallback-to-L3 behavior. Cache keys must include tenant, account, locale, entitlement, or feature dimensions whenever those dimensions affect the result. Be careful with PII and auth/subscription decisions; if they are cached, the invalidation and TTL must be intentionally conservative.
+
+Every database query and API call must have an explicit timeout, deadline, or cancellable context. Timeouts should be close to the caller's latency budget, propagate cancellation where the language supports it, and include clear handling for timeout errors. Do not let a missing timeout turn a slow dependency into thread, worker, Lambda, connection-pool, or queue exhaustion.
+
+Database queries must be shaped for the smallest useful row set:
+
+- Filter early before joining large tables. Prefer narrowing subqueries, CTEs, or indexed predicates before joining broad relations.
+- Do not join many tables and then discard most rows in application code or a late `WHERE` clause.
+- Select only the columns needed.
+- Avoid N+1 queries; batch or prefetch intentionally.
+- Add indexes that match real filters, joins, and ordering.
+- Use pagination or bounded limits for untrusted result sets.
+- Inspect execution plans for new or changed high-traffic queries.
+
+## Infrastructure, CI/CD, and cost
+
+Follow the infrastructure language already established by the repo. If the repo has Terraform, code infrastructure changes in Terraform. If the repo has CDK, code CDK in TypeScript. Do not introduce a second infrastructure framework without an explicit architectural decision and migration plan.
+
+GitHub Actions workflows are part of backend CI/CD scope when they build, test, deploy, migrate, or operate backend services. Keep jobs least-privileged, deterministic, and observable. Pin action versions, pass secrets through approved mechanisms, and avoid printing sensitive environment data.
+
+When an AI agent is unsure about live AWS infrastructure, metrics, alarms, or service state, and read-only AWS access would clarify the answer, it should not guess. It should ask the human user to provide read-only credentials or access through an approved local or CI credential mechanism, not by pasting secrets into chat, logs, docs, or code. If read-only AWS credentials are already available in the working context, the agent may inspect state with read-only operations only, such as `get`, `list`, `describe`, and metric/log query operations that do not mutate resources or configuration. The agent must never create, update, delete, deploy, apply, modify, put, attach, detach, or otherwise write to AWS while following this standard.
+
+Balance availability, observability, and durability against AWS cost. Do not add expensive redundancy, retention, logging, tracing, metrics, queues, storage classes, NAT paths, RDS sizing, or cross-region behavior without a clear reliability need. Prefer explicit cost controls such as retention windows, sampling, bounded dimensions, feature flags, and environment-specific settings.
+
+High-cardinality telemetry is expensive and should be opt-in or sampled unless it is clearly required. In `dailywire-cms-2`, high-cardinality metrics were put behind a feature flag so they emit only selectively; use that pattern for costly diagnostics instead of making every request emit unbounded dimensions.
+
+## Observability and alarms
+
+New features MUST ship with observability. Refactors of old features MUST preserve existing telemetry and should improve it when gaps are obvious.
+
+At minimum, backend changes should emit or preserve:
+
+- request count, error count, and latency for public entrypoints
+- dependency latency/error metrics for databases, Redis/Valkey, queues, and external services
+- cache hit/miss metrics when a cache is involved
+- business outcome metrics for important product flows
+- structured logs with correlation/request IDs and no secrets or sensitive payloads
+- traces or spans around important use cases and slow dependencies when the repo supports tracing
+
+Metrics need bounded dimensions. Do not use user IDs, raw URLs, emails, titles, or unbounded strings as metric labels.
+
+Error metrics MUST count only actionable failures. Client-driven cancellation, expected-absence results, and validation rejections are not dependency or server failures and must not increment `*.Error`, `*.Failure`, or `5xx` counters. See [`telemetry-noise.md`](telemetry-noise.md) for the full rule, the `context.Canceled` vs. `context.DeadlineExceeded` split, and alarm-sensitivity requirements.
+
+Feature-impacting deviations in metrics MUST be tied to a composite rollback alarm for the respective ECS cluster when the service runs on ECS. Less-sensitive operational alarms should be separate and route to the appropriate SNS topic: business-hours SNS for issues that can wait, or the regular SNS topic connected to Better Stack for issues that need normal incident visibility.
+
+## Review questions
+
+During review, ask:
+
+- Do dependencies point inward, or did framework/data/cache code leak into business logic?
+- Are entities, use cases, and DAOs using their intended carve-outs without leaking responsibilities?
+- Can the main use case be unit tested without real infrastructure?
+- Are branch and line coverage high for the changed behavior?
+- Are names clear enough for the next engineer or agent to follow without extra context?
+- Is complexity low enough that failure paths are obvious?
+- Is caching using the right L1/L2/L3 layer with explicit TTLs and invalidation?
+- Are database queries filtered, joined, indexed, bounded, parameterized, and timed out appropriately?
+- Are API calls explicitly timed out, including rare L3 authoritative API calls?
+- Are POST bodies, query parameters, and other external inputs validated before use?
+- Are sensitive values kept out of logs, metrics, traces, errors, and CI output?
+- Does infrastructure code follow the repo's Terraform or TypeScript CDK convention and account for AWS cost?
+- If live AWS state would reduce uncertainty, did the agent ask for read-only access or use existing credentials only for read-only inspection?
+- Did the change add or preserve metrics, logs, traces, and alarms?
+- Can any error metric in the diff fire on a client disconnect, an expected-absence result, or invalid client input?

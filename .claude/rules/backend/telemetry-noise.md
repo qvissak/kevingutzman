@@ -1,0 +1,126 @@
+---
+paths:
+  - "**/server/**"
+  - "**/api/**"
+  - "**/cmd/**"
+  - "**/internal/**"
+  - "**/*.go"
+  - "**/*.py"
+  - "**/*.sql"
+  - "**/*.tf"
+  - "**/*.tfvars"
+  - "**/*.tf.json"
+  - "**/cdk/**"
+  - "**/cdk.json"
+  - ".github/workflows/**"
+  - "**/*.sh"
+  - "**/*.bash"
+---
+
+# Telemetry Noise and False Alarms
+
+## Classify the failure before you count it
+
+Every error that can reach a metric emitter must be classified first. Only count failures that a human could act on.
+
+Do not count as a dependency or server failure:
+
+- Client-driven cancellation — the caller disconnected, the browser navigated away, a CDN or proxy aborted, or an upstream client timed out. Nothing on our side failed.
+- Expected-absence results, such as a cache miss, a not-found lookup that the caller handles, or an empty result set that is a valid state.
+- Validation rejections of malformed client input. Count these separately as client errors (`4xx`), never alongside server or dependency errors.
+
+Do count:
+
+- Deadline exceeded. A timeout we set and blew is our latency problem, and a real signal.
+- Dependency errors, throttles, connection failures, and serialization failures.
+- Anything that produced a degraded or wrong response to a client that was still listening.
+
+In Go, this distinction is exactly `context.Canceled` (the caller went away) versus `context.DeadlineExceeded` (we were too slow). Use `errors.Is`, never `==` and never string matching on the error text: AWS SDK, database driver, and HTTP client errors wrap the sentinel, and the AWS SDK in particular surfaces cancellation as an operation error with `StatusCode: 0`.
+
+**Bad**
+
+```go
+records, err := m.dunningDAO.GetActiveDunning(r.Context(), accountCode)
+if err != nil {
+	m.emfDAO.AddMetricCount("v4CheckDunningHandler.Failure", 1)
+	m.logger.Error("failed to query dunning table", m.logger.String("error", err.Error()))
+	writeJSONApiError(newServerError(), w)
+	return
+}
+```
+
+**Good**
+
+```go
+records, err := m.dunningDAO.GetActiveDunning(r.Context(), accountCode)
+if err != nil {
+	// Client disconnected before the query finished. Not a server-side failure:
+	// don't count it, and don't bother writing to a client that's gone.
+	if errors.Is(err, context.Canceled) {
+		m.logger.Warn("request canceled while querying dunning table", m.logger.String("error", err.Error()))
+		return
+	}
+
+	status := http.StatusInternalServerError
+	message := "internal server error"
+	if errors.Is(err, context.DeadlineExceeded) {
+		status = http.StatusGatewayTimeout
+		message = "dunning query timed out"
+	}
+
+	m.emfDAO.AddMetricCount("v4CheckDunningHandler.Failure", 1)
+	m.logger.Error("failed to query dunning table", m.logger.String("error", err.Error()))
+	writeJSONApiError(newAPIError(message, status), w)
+	return
+}
+```
+
+Note what the guard does *not* change: a derived `context.WithTimeout(r.Context(), d)` returns `context.Canceled` when the client disconnects and `context.DeadlineExceeded` when your own timeout fires. Checking `errors.Is(err, context.Canceled)` keeps the timeout signal. Checking `ctx.Err() != nil` throws it away — do not use the broader check as a shortcut.
+
+## Guard at the emit site, not in a wrapper
+
+The guard MUST run before the metric is emitted, in the code that made the failing call. Do not plan to clean the signal up later in an HTTP middleware, a response interceptor, or a deferred wrapper.
+
+Two reasons, both structural:
+
+- **Metrics usually cannot be retracted.** Our EMF emitters buffer into process-wide state and flush on a timer or a value-count threshold, not at a request boundary. Once inner handler code calls `AddMetricCount`, the value is already pooled with no request attribution. A wrapper that inspects the response after the handler returns has nothing left to suppress. Verify how your service's emitter buffers before assuming otherwise.
+- **Only the call site knows the error's provenance.** Whether a given error means "client left" depends on which client, driver, or SDK produced it. A wrapper several layers out sees a status code, not an error chain.
+
+Sharing the *classification* across sites is good and expected: extract a small named predicate (`isClientGone(err)`) or a shared error-handling helper, and call it from each site. That gives the next engineer a greppable symbol and gives reviewers something to look for. Sharing a classifier is not the same as adding an interceptor — do the former, not the latter.
+
+A cross-cutting HTTP wrapper is still the right tool for signals it can actually compute on its own, such as response time, status-code counts, or panic recovery. It is the wrong tool for suppressing a metric that inner code already emitted.
+
+## The reaction stays local
+
+Classification is cross-cutting. The reaction is not. The same client-gone error correctly produces different behavior per endpoint: return early and write nothing, fall back to a safe default and still return `200`, serve a partial response, or drop an enrichment field. Do not force those into one shared handler to save a few lines — share the predicate, keep the reaction in the endpoint.
+
+## Aggregate counters need the same guard
+
+When failures are tallied rather than returned — a `failedQueryCount` across parallel queries, a retry counter, a batch error list — exclude client-canceled work from the tally itself, not just at the line that emits the metric. Otherwise a single disconnect both emits a false failure metric and drives a real degraded response.
+
+When a request's context is already canceled, also skip the response write and any remaining expensive work. Check the context before serializing a large payload for a client that is gone.
+
+## Alarm thresholds must match the signal
+
+An alarm's sensitivity must match how the underlying metric actually behaves in production.
+
+- Wire a metric into an ECS rollback composite only when it signals a deploy-correlated regression in our code. Dependency latency and third-party slowness are not deploy-correlated; alarming them at rollback sensitivity means an unrelated slow dependency reverts a healthy deploy.
+- Keep "our code broke" separate from "a dependency was slow." A `500` and a `504` are different signals with different owners — give them separate metrics, separate alarms, and the appropriate SNS topic, rather than one `5xx` counter feeding a rollback.
+- Reserve `threshold = 0` with `datapoints_to_alarm = 1` for conditions that must literally never happen. For anything that can occur once under normal client behavior, require sustained breach (for example `2` of `3` periods) so a single blip does not page.
+- Set `treat_missing_data` deliberately. `notBreaching` is right for a metric that is absent when healthy.
+
+When you add a metric, state in the PR description which alarm consumes it, or that none does yet. A metric with no consumer is a dashboard line, not an alert, and should not be defended as if it were one.
+
+## Review questions
+
+During review, ask:
+
+- Does every error path that increments an error metric first rule out client-driven cancellation?
+- Does the code use `errors.Is` against the sentinel, rather than `==` or string matching?
+- Is `context.DeadlineExceeded` still counted, and still distinguishable from `context.Canceled`?
+- Is the guard at the call site, before the emit, rather than deferred to a wrapper that cannot retract the metric?
+- If several sites share this failure class, do they share a named predicate instead of duplicated inline checks?
+- Are canceled operations excluded from aggregate failure counters, not just from the metric line?
+- Is expensive response work skipped when the request context is already canceled?
+- Does each new or changed metric name the alarm that consumes it, or say explicitly that none does?
+- Is the alarm's sensitivity right for the metric — rollback-composite only for deploy-correlated regressions, sustained breach for anything that can blip once?

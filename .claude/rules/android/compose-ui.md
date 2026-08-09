@@ -1,0 +1,141 @@
+---
+paths:
+  - "**/*.kt"
+  - "**/*.kts"
+  - "**/*.gradle"
+---
+
+# Android Compose UI Standards
+
+## Purpose
+
+Define how Compose UI should be written in the existing Android project so screens remain lifecycle-safe, testable, and consistent. Compose code should render state and dispatch user intent; it should not become the owner of business logic or data loading.
+
+## Required Standards
+
+Composables should not fetch data, perform business logic, or contain non-trivial formatting logic. Very minimal UI state may be handled in a `remember { }`. Composables avoid using anything other than ViewModels and UI state from ViewModels.
+
+- Screen files sit next to their ViewModel under `app/ui/screens/...`.
+- Screen composables encapsulate the whole screen. They get the ViewModel, collect state, collect one-time effects, and pass state/actions down to screen composables.
+    - Screen composables receive a ViewModel from the navigation graph or parent screen and collect `uiState`.
+    - Screens use lifecycle-aware state flow collection with `collectAsStateWithLifecycle` (NOT `collectAsState()`).
+    - Use `LaunchedEffect`, `DisposableEffect`, and lifecycle hooks only for UI side effects.
+    - The screen-level composable connects the ViewModel to stateless UI sections.
+- Layout composables take in uiState and action callbacks that can be easily faked for easily created previews.
+    - Layouts render `LoadableUiState.Available`, `LoadableUiState.Error`, and `LoadableUiState.Loading`.
+- Shared UI building blocks live under `app/ui/components` and theme primitives live under `components/theme`.
+- Screen tests and robots should follow the test fixture structure described in `TESTING.md`.
+- `@Preview` functions should be created for all layouts and moderately complex components.
+- Child composables receive explicit state and callbacks rather than reading ViewModels directly.
+- Use existing theme, dimensions, typography, colors, skeletons, error layouts, and shared components before adding new UI primitives.
+- Keep local `remember` state limited to ephemeral UI concerns such as scroll position, expanded menus, input focus, and animation state.
+- Do not start network, database, analytics, or navigation work from composables.
+- Prefer stable test tags, content descriptions, or robot-friendly selectors for important UI surfaces.
+
+## Example
+
+```kotlin
+@Composable
+fun FeatureScreen() {
+  val viewModel: FeatureViewModel by viewModels()
+  val uiState by viewModel.observableUiState.collectAsStateWithLifecycle()
+
+  LaunchedEffect(Unit) { }
+
+  FeatureLayout(
+    uiState = uiState,
+    sendAction = viewModel::send,
+  )
+}
+
+@Composable
+fun FeatureLayout(
+  uiState: FeatureUiState,
+  sendAction: (FeatureAction) -> Unit,
+) {
+  when (uiState.pageState) {
+    is LoadableUiState.Loading -> LoadingScreen()
+    is LoadableUiState.Error -> ErrorScreen { sendAction(FeatureAction.Retry) }
+    else -> FeatureContent(uiState.pageState, sendAction)
+  }
+}
+
+@Composable
+fun FeatureContent(
+  data: FeatureData,
+  sendAction: (FeatureAction) -> Unit,
+  modifier: Modifier = Modifier,
+) { ... }
+
+@Preview
+@Composable
+fun FeatureLayoutPreview() {
+  FeatureLayout(
+    uiState = FeatureUiState(),
+    sendAction = {},
+  )
+}
+```
+
+## Do / Don't
+
+Do:
+
+```kotlin
+@Composable
+private fun FeatureLayout(
+    state: FeatureUiState,
+    onAction: (FeatureAction) -> Unit,
+) {
+    when (val page = state.pageState) {
+        is LoadableUiState.Loading -> LoadingContent()
+        is LoadableUiState.Error -> ErrorContent(onRetry = { onAction(FeatureAction.Refresh) })
+        is LoadableUiState.Available -> AvailableContent(page.data)
+    }
+}
+```
+
+Don't:
+
+```kotlin
+@Composable
+private fun FeatureLayout(viewModel: FeatureViewModel) {
+    val state by viewModel.uiState.collectAsState()
+    Button(onClick = { viewModel.refreshAndNavigate() }) {
+        Text("Retry")
+    }
+}
+```
+
+Reason: child UI should stay easy to preview and test without a real ViewModel.
+
+Do:
+
+```kotlin
+val listState = rememberLazyListState()
+var menuExpanded by remember { mutableStateOf(false) }
+```
+
+Don't:
+
+```kotlin
+var loadedItems by remember { mutableStateOf(emptyList<Item>()) }
+LaunchedEffect(Unit) {
+    loadedItems = repository.loadItems()
+}
+```
+
+Reason: persisted or business state belongs above the composable, normally in a ViewModel.
+
+## Exceptions
+
+- Very small internal components may keep simple visual state if hoisting it would make call sites worse.
+- Existing screens may collect state with older APIs. Prefer lifecycle-aware collection when touching those screens unless the local pattern prevents a safe narrow change.
+- Platform interop such as WebView, PlayerView, or permission launchers may require local effects. Keep the effect scoped and documented when the behavior is not obvious.
+
+## Validation Expectations
+
+- For UI changes, verify loading, error, success, and empty states that the screen supports.
+- For state or lifecycle changes, add or update ViewModel or Compose tests when behavior is non-trivial.
+- For reusable UI components, prefer previews or focused Compose tests when visual states are complex.
+- For accessibility-sensitive components, verify content descriptions, touch targets, and readable text behavior.

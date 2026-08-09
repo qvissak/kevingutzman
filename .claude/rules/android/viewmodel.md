@@ -1,0 +1,83 @@
+---
+paths:
+  - "**/*.kt"
+  - "**/*.kts"
+  - "**/*.gradle"
+---
+
+# Android ViewModel Standards
+
+## Purpose
+
+Define how ViewModels should be written and used in the existing Android project.
+
+## Required Standards
+
+Composables use viewModels to do all logic and handle actions. They kick off data fetching, business logic, non-trivial formatting logic, and wrapper usage (analytics, flags, etc.).
+
+- Screen ViewModels sit next to their Screen under `app/ui/screens/...`.
+- Component specific ViewModels live next to their components.
+- Always use `@HiltViewModel` and constructor injection for ViewModel dependencies.
+- Launch coroutine work from `viewModelScope.launch`.
+- Update observable state with the `MutableStateFlow.update { }` pattern.
+- `UiState` and `Action` objects should live in a separate file in the same package
+- UiState constructor should declare default params which are initial state
+- For complex viewModels, an optional state factory can be used to make state updates, living in the same file as the uiState
+
+## Example
+
+```kotlin
+@HiltViewModel
+class FeatureViewModel @Inject constructor(
+    private val stateFactory: FeatureUiStateFactory,
+    private val featureRepository: FeatureRepository,
+    private val analyticsManager: AnalyticsManager,
+) : ViewModel() {
+
+    private val uiState = MutableStateFlow(stateFactory.createInitialState())
+    val observableUiState: StateFlow<FeatureUiState> = uiState
+
+    init {
+        loadFeatureData()
+    }
+
+    fun send(action: FeatureAction) {
+        when (action) {
+            is FeatureAction.Retry -> loadFeatureData()
+            is FeatureAction.AddData -> navigateToAddData()
+        }
+    }
+
+    private fun loadFeatureData() {
+        viewModelScope.launch {
+            val result = featureRepository.getData()
+            result.onSuccess { data ->
+                uiState.update { previousModel ->
+                    //complex screens
+                    stateFactory.updateStateWithData(previousModel, data)
+                    //standard screens
+                    previousModel.copy(data = data)
+                }
+            }
+        }
+    }
+}
+
+sealed class FeatureAction {
+    data object OnBack : FeatureAction()
+}
+
+data class FeatureUiState(
+    val isLoading: Boolean = true,
+    val data: FeatureData? = null,
+)
+
+//Optional
+class FeatureUiStateFactory @Inject constructor() {
+    fun createInitialState() = FeatureUiState(isLoading = true)
+    fun updateStateWithData(
+        previousState: FeatureUiState,
+        data: FeatureData,
+    ) = previousState.copy(data = data.transformData)
+}
+```
