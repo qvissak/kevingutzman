@@ -1,1 +1,42 @@
 @import "tailwindcss";
+
+@theme {
+  --font-serif: "Newsreader", serif;
+  --font-sans: "Work Sans", sans-serif;
+
+  --color-cream: #f6f0e4;
+  --color-card: #fffdf8;
+  --color-ink: #211a14;
+  --color-body: #332a20;
+  --color-body-soft: #4a3f34;
+  --color-muted: #6b5d4f;
+  --color-muted-on-dark: #b7a891;
+  --color-accent: #7c2d3a;
+  --color-accent-hover: #5c1f29;
+  --color-gold: #c99a63;
+  --color-border: #ddd0ba;
+  --color-border-on-dark: #55483a;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+  }
+
+  ::selection {
+    background: #e6d3b8;
+  }
+}
