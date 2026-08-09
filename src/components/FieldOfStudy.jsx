@@ -25,20 +25,20 @@ function FieldOfStudy() {
       id="field"
       className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]"
     >
-      <div className="sticky top-[60px] z-[5] mx-auto mb-12 bg-cream px-0 pt-4 pb-6 text-center">
+      <div className="sticky top-[76px] z-[5] mx-auto bg-cream pt-4 pb-4 text-center">
         <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
           Field of Study
         </div>
-        <h2 className="m-0 mb-4 font-serif text-[32px] font-semibold">
+        <h2 className="m-0 font-serif text-[32px] font-semibold">
           The Constitution and the Jeffersonian founders
         </h2>
-        <p className="mx-auto max-w-[640px] text-base leading-[1.65] text-body-soft">
-          Gutzman&rsquo;s work returns again and again to one question: what
-          did the founding generation actually believe about the
-          Constitution, the states, and liberty &mdash; and how does that
-          differ from how we remember it today?
-        </p>
       </div>
+      <p className="mx-auto mb-12 max-w-[640px] text-center text-base leading-[1.65] text-body-soft">
+        Gutzman&rsquo;s work returns again and again to one question: what did
+        the founding generation actually believe about the Constitution, the
+        states, and liberty &mdash; and how does that differ from how we
+        remember it today?
+      </p>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
         {TOPICS.map((topic) => (
           <div key={topic.title} className="border border-border bg-card p-7">

@@ -126,20 +126,18 @@ function Articles() {
       id="articles"
       className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]"
     >
-      <div className="sticky top-[60px] z-[5] mb-10 flex flex-wrap items-end justify-between gap-6 bg-cream py-4">
-        <div>
-          <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
-            Articles
-          </div>
-          <h2 className="m-0 font-serif text-[32px] font-semibold">
-            Scholarly &amp; popular writing
-          </h2>
+      <div className="sticky top-[76px] z-[5] bg-cream py-4">
+        <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
+          Articles
         </div>
-        <p className="m-0 max-w-[34ch] text-sm text-muted">
-          Peer-reviewed scholarship, book chapters, and commentary spanning
-          three decades.
-        </p>
+        <h2 className="m-0 font-serif text-[32px] font-semibold">
+          Scholarly &amp; popular writing
+        </h2>
       </div>
+      <p className="m-0 mb-10 max-w-[34ch] text-sm text-muted">
+        Peer-reviewed scholarship, book chapters, and commentary spanning
+        three decades.
+      </p>
 
       <div className="mb-11">
         <div className="mb-4 text-[13px] font-semibold tracking-[0.08em] text-muted uppercase">

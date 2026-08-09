@@ -64,20 +64,18 @@ function Books() {
   return (
     <div id="books" className="bg-ink py-[72px]">
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)]">
-        <div className="sticky top-[60px] z-[5] mb-10 flex flex-wrap items-end justify-between gap-6 bg-ink py-4">
-          <div>
-            <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase">
-              Books
-            </div>
-            <h2 className="m-0 font-serif text-[32px] font-semibold text-cream">
-              Six books, one throughline
-            </h2>
+        <div className="sticky top-[76px] z-[5] bg-ink py-4">
+          <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase">
+            Books
           </div>
-          <p className="m-0 max-w-[32ch] text-sm text-muted-on-dark">
-            From his first New York Times bestseller in 2007 to his latest
-            study of the Jeffersonian presidencies.
-          </p>
+          <h2 className="m-0 font-serif text-[32px] font-semibold text-cream">
+            Six books, one throughline
+          </h2>
         </div>
+        <p className="m-0 mb-10 max-w-[32ch] text-sm text-muted-on-dark">
+          From his first New York Times bestseller in 2007 to his latest
+          study of the Jeffersonian presidencies.
+        </p>
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-x-8 gap-y-10">
           {BOOKS.map((book) => (

@@ -44,19 +44,19 @@ function Appearances() {
   return (
     <div id="appearances" className="border-y border-border bg-card">
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]">
-        <div className="sticky top-[60px] z-[5] mx-auto mb-12 bg-card pt-4 pb-6 text-center">
+        <div className="sticky top-[76px] z-[5] mx-auto bg-card pt-4 pb-4 text-center">
           <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
             Appearances
           </div>
-          <h2 className="m-0 mb-4 font-serif text-[32px] font-semibold">
+          <h2 className="m-0 font-serif text-[32px] font-semibold">
             Hundreds of programs, national and local
           </h2>
-          <p className="mx-auto max-w-[640px] text-base leading-[1.65] text-body-soft">
-            Gutzman has appeared in over 500 media outlets in Canada, the UK,
-            and the USA, and been interviewed by reporters from the AP, The
-            Washington Post, and The New York Times, among others.
-          </p>
         </div>
+        <p className="mx-auto mb-12 max-w-[640px] text-center text-base leading-[1.65] text-body-soft">
+          Gutzman has appeared in over 500 media outlets in Canada, the UK,
+          and the USA, and been interviewed by reporters from the AP, The
+          Washington Post, and The New York Times, among others.
+        </p>
 
         <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-4">
           {OUTLETS.map((outlet) => (
