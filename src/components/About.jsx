@@ -1,6 +1,6 @@
 // What: About section (#about) — bio copy and career stat tiles.
 // Who calls it / when: rendered once by App.jsx.
-// Gotchas: the label column uses `position: sticky; top: 76px`, matching the nav's rendered height, so it pins while the bio scrolls without the nav clipping it.
+// Gotchas: the label column uses `position: sticky; top: 60px`, matching the nav's fixed height, so it sits flush below the nav while the bio scrolls.
 const STATS = [
   { value: '6', label: 'Books published' },
   { value: '7', label: 'Peer-reviewed articles' },
@@ -17,7 +17,7 @@ function About() {
   return (
     <div id="about" className="border-y border-border bg-card">
       <div className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-10 px-[clamp(16px,4vw,32px)] py-[clamp(40px,8vw,72px)]">
-        <div className="sticky top-[76px] self-start bg-card py-4">
+        <div className="sticky top-[60px] self-start bg-card py-4">
           <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
             About
           </div>

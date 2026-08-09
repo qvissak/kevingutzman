@@ -126,7 +126,7 @@ function Articles() {
       id="articles"
       className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]"
     >
-      <div className="sticky top-[76px] z-[5] bg-cream py-4">
+      <div className="sticky top-[60px] z-[5] bg-cream py-4">
         <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
           Articles
         </div>

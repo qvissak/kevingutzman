@@ -1,6 +1,6 @@
 // What: Sticky top navigation bar with same-page anchor links.
 // Who calls it / when: rendered once by App.jsx, always visible at the top of the page.
-// Gotchas: below the md breakpoint, links collapse into a hamburger-triggered dropdown instead of wrapping to multiple rows.
+// Gotchas: below the md breakpoint, links collapse into a hamburger-triggered dropdown instead of wrapping to multiple rows. The row is pinned to a fixed 60px height (rather than sized by padding) so every section's `top-[60px]` sticky sub-header lines up flush against it with no gap.
 import { useState } from 'react'
 
 const LINKS = [
@@ -17,7 +17,7 @@ function Nav() {
 
   return (
     <div className="sticky top-0 z-50 border-b border-border bg-[rgba(246,240,228,0.92)] backdrop-blur-[6px]">
-      <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 px-[clamp(16px,4vw,32px)] py-3.5">
+      <div className="mx-auto flex h-[60px] max-w-[1100px] items-center justify-between gap-4 px-[clamp(16px,4vw,32px)]">
         <a
           href="#top"
           className="whitespace-nowrap font-serif text-[clamp(16px,3vw,20px)] font-semibold tracking-[0.01em] text-ink no-underline hover:text-ink hover:no-underline"

@@ -64,7 +64,7 @@ function Books() {
   return (
     <div id="books" className="bg-ink py-[72px]">
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)]">
-        <div className="sticky top-[76px] z-[5] bg-ink py-4">
+        <div className="sticky top-[60px] z-[5] bg-ink py-4">
           <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase">
             Books
           </div>
