@@ -52,9 +52,9 @@ function About() {
             <em>The Virginia Magazine of History and Biography</em> from 2020
             to 2023.
           </p>
-          <div className="flex flex-wrap gap-10 border-t border-border pt-2">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-x-8 gap-y-6 border-t border-border pt-7">
             {STATS.map((stat) => (
-              <div key={stat.label} className="pt-5">
+              <div key={stat.label}>
                 <div
                   className={
                     stat.small
