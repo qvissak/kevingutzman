@@ -104,6 +104,13 @@ const BOOKS = [
     meta: "2012 · St. Martin's Press · History Book Club & Freedom Book Club Main Selection",
     description:
       'A complex, sometimes contradictory portrait beyond “Father of the Constitution.”',
+    videos: [
+      {
+        title: 'Who Was James Madison? — The Rubin Report',
+        url: 'https://www.youtube.com/watch?v=fmC1t3F7OJA&t=8s',
+        embedUrl: 'https://www.youtube.com/embed/fmC1t3F7OJA?start=8',
+      },
+    ],
     longDescription: [
       'In James Madison and the Making of America, historian Kevin Gutzman looks beyond the way James Madison is traditionally seen – as "The Father of the Constitution" – to find a more complex and sometimes contradictory portrait of this influential Founding Father and the ways in which he influenced the spirit of today\'s United States.',
       'Instead of an idealized portrait of Madison, Gutzman treats readers to the flesh-and-blood story of a man who often performed his founding deeds in spite of himself: Madison’s fame rests on his participation in the writing of The Federalist Papers and his role in drafting the Bill of Rights and Constitution.',

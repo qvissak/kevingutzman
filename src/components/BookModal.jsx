@@ -50,11 +50,11 @@ function BookModal({ book, onClose }) {
           type="button"
           onClick={handleClose}
           aria-label="Close"
-          className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center bg-card text-ink"
+          className="absolute top-2 right-2 z-10 flex h-11 w-11 items-center justify-center bg-card text-ink"
         >
           <svg
-            width="20"
-            height="20"
+            width="26"
+            height="26"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
