@@ -5,8 +5,8 @@ import { useState } from 'react'
 
 const LINKS = [
   { href: '#about', label: 'About' },
-  { href: '#books', label: 'Books' },
   { href: '#field', label: 'Field of Study' },
+  { href: '#books', label: 'Books' },
   { href: '#articles', label: 'Articles' },
   { href: '#appearances', label: 'Appearances' },
   { href: '#contact', label: 'Contact' },
