@@ -41,6 +41,10 @@ const BOOK_CHAPTERS = [
     citation: 'in Jeffersonians in Power, University of Virginia Press (2019)',
   },
   {
+    title: 'Foreword to Anthony Gregory, The Power of Habeas Corpus in America',
+    citation: 'Cambridge University Press (2013)',
+  },
+  {
     title:
       '"James Madison and the Ratification of the Constitution: A Triumph over Adversity"',
     citation:
@@ -49,10 +53,6 @@ const BOOK_CHAPTERS = [
   {
     title: '"Lincoln as Jeffersonian: The Colonization Chimera"',
     citation: 'in Lincoln Emancipated, Northern Illinois University Press (2007)',
-  },
-  {
-    title: 'Foreword to Anthony Gregory, The Power of Habeas Corpus in America',
-    citation: 'Cambridge University Press (2013)',
   },
 ]
 
@@ -66,20 +66,20 @@ const ADDITIONAL_SCHOLARSHIP = [
     citation: 'University of St. Thomas Law Journal 14, no. 1 (2018)',
   },
   {
-    title: '"Thomas Jefferson\'s Federalism, 1774–1825"',
-    citation: 'Modern Age (2011)',
+    title: '"We Should Be Cheering the Likely End of the Senate Filibuster"',
+    citation: 'Fox News Online (2017)',
   },
   {
     title: 'Hillary Clinton qualifications op-ed',
     citation: 'Richmond Times-Dispatch (2016)',
   },
   {
-    title: '"We Should Be Cheering the Likely End of the Senate Filibuster"',
-    citation: 'Fox News Online (2017)',
-  },
-  {
     title: '"Lincoln, Kennedy, Obama and the Value of Compromise"',
     citation: 'The National Post (2013)',
+  },
+  {
+    title: '"Thomas Jefferson\'s Federalism, 1774–1825"',
+    citation: 'Modern Age (2011)',
   },
 ]
 
