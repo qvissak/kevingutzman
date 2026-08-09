@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/', // Important for GitHub Pages routing
+  base: '/kevingutzman/', // Important for GitHub Pages routing
 })
