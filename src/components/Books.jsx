@@ -262,9 +262,6 @@ function Books() {
           <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase">
             Books
           </div>
-          <h2 className="m-0 font-serif text-[32px] font-semibold text-cream">
-            Six books, one throughline
-          </h2>
         </div>
         <p className="m-0 mb-10 max-w-[32ch] text-sm text-muted-on-dark">
           From his first New York Times bestseller in 2007 to his latest
