@@ -4,5 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/kevingutzman/', // Important for GitHub Pages routing
+  // Serve generated assets from the custom domain's root.
+  base: '/',
 })
