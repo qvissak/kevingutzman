@@ -17,6 +17,17 @@ const BOOKS = [
     meta: "2022 · St. Martin's Press · History Book Club Main Selection, Jan 2023",
     description:
       'The visionary presidencies of Jefferson, Madison, and Monroe.',
+    videos: [
+      {
+        title: 'Revolution 250 Jeffersonians Interview',
+        url: 'https://www.youtube.com/watch?v=pBf8xpTBIsE',
+        embedUrl: 'https://www.youtube.com/embed/pBf8xpTBIsE',
+      },
+      {
+        title: "Newt's World Jeffersonians Interview",
+        url: 'https://gingrich360.com/2022/12/17/newts-world-episode-495-the-virginia-dynasty-jefferson-madison-and-monroe/',
+      },
+    ],
     longDescription: [
       'A lively and essential chronicle of the only consecutive trio of two-term presidencies of the same political party in American history, from the bestselling author of Thomas Jefferson - Revolutionary and James Madison.',
       'Before the consecutive two-term administrations of Presidents Bill Clinton, George W. Bush, and Barack Obama, there had only been one other trio of its type: Thomas Jefferson, James Madison, and James Monroe.',
@@ -114,6 +125,15 @@ const BOOKS = [
         title: 'Clemson University Constitution Day Madison Speech',
         url: 'https://www.youtube.com/watch?v=fJl6k1Mf3A0&t=148s',
         embedUrl: 'https://www.youtube.com/embed/fJl6k1Mf3A0?start=148',
+      },
+      {
+        title: 'Furman University Religious Liberty Speech',
+        url: 'https://www.youtube.com/watch?v=usWqr8cogtM&t=36s',
+        embedUrl: 'https://www.youtube.com/embed/usWqr8cogtM?start=36',
+      },
+      {
+        title: 'C-SPAN Religious Liberty Speech',
+        url: 'https://www.youtube.com/watch?v=UTg50YcV6Dc&t=14s',
       },
     ],
     longDescription: [
@@ -235,6 +255,13 @@ const BOOKS = [
     meta: '2007 · Regnery · NYT Bestseller',
     description:
       'His debut book and the only Jeffersonian account of American constitutional history in print.',
+    videos: [
+      {
+        title: 'America Talks Live Constitution Day Interview',
+        url: 'https://www.youtube.com/watch?v=fAFc0k6Ynac&t=109s',
+        embedUrl: 'https://www.youtube.com/embed/fAFc0k6Ynac?start=109',
+      },
+    ],
     longDescription: [
       'The Constitution of the United States created a representative republic marked by federalism and the separation of powers.',
       'Yet numerous federal judges–led by the Supreme Court–have used the Constitution as a blank check to substitute their own views on hot-button issues such as abortion, capital punishment, and same sex marriage for perfectly constitutional laws enacted by We the People through our elected representatives.',
