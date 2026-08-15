@@ -2,6 +2,7 @@
 // Who calls it / when: rendered once by App.jsx as the first in-page section.
 // Gotchas: none.
 import headshot from '../assets/krg.jpg'
+import { trackEvent } from '../analytics'
 
 function Hero() {
   return (
@@ -33,6 +34,7 @@ function Hero() {
             href="mailto:gutzmank@wcsu.edu?subject=Speaking%20Inquiry"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackEvent('generate_lead', { lead_type: 'speaking_inquiry' })}
             className="rounded-[2px] border border-ink px-[26px] py-[13px] text-sm font-semibold tracking-[0.03em] text-ink no-underline hover:text-ink hover:no-underline"
           >
             Inquire about Speaking

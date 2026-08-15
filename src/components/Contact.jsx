@@ -1,6 +1,8 @@
 // What: Contact section (#contact) — email/mailing address and social icon links.
 // Who calls it / when: rendered once by App.jsx.
 // Gotchas: the Amazon follow icon is Amazon's smile-arrow mark (path lifted from the simple-icons "amazon" glyph), matching the Buy button in BookModal.jsx.
+import { trackEvent } from '../analytics'
+
 const SOCIALS = [
   {
     label: 'X (Twitter)',
@@ -41,6 +43,7 @@ function Contact() {
               href="mailto:gutzmank@wcsu.edu"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('generate_lead', { lead_type: 'general_inquiry' })}
               className="font-semibold"
             >
               gutzmank@wcsu.edu
