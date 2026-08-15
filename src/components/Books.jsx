@@ -110,6 +110,11 @@ const BOOKS = [
         url: 'https://www.youtube.com/watch?v=fmC1t3F7OJA&t=8s',
         embedUrl: 'https://www.youtube.com/embed/fmC1t3F7OJA?start=8',
       },
+      {
+        title: 'Clemson University Constitution Day Madison Speech',
+        url: 'https://www.youtube.com/watch?v=fJl6k1Mf3A0&t=148s',
+        embedUrl: 'https://www.youtube.com/embed/fJl6k1Mf3A0?start=148',
+      },
     ],
     longDescription: [
       'In James Madison and the Making of America, historian Kevin Gutzman looks beyond the way James Madison is traditionally seen – as "The Father of the Constitution" – to find a more complex and sometimes contradictory portrait of this influential Founding Father and the ways in which he influenced the spirit of today\'s United States.',
@@ -161,6 +166,13 @@ const BOOKS = [
     meta: '2008 · Crown Forum · with Thomas E. Woods, Jr.',
     description:
       "The federal government's expansion at the expense of American liberty, from World War I onward.",
+    videos: [
+      {
+        title: 'Cleveland, Texas Who Killed the Constitution Address',
+        url: 'https://www.youtube.com/watch?v=TYvNH5uWhIA',
+        embedUrl: 'https://www.youtube.com/embed/TYvNH5uWhIA',
+      },
+    ],
     longDescription: [
       'The United States Constitution—the bedrock of our country, the foundation of our federal republic—is... dead.',
       "You won't hear that from the politicians who endlessly pay lip service to the Constitution. It's the dirty little secret that bestselling authors Thomas E. Woods Jr. and Kevin R. C. Gutzman expose in this provocative new book.",
