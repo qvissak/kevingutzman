@@ -258,11 +258,11 @@ function Books() {
   return (
     <div id="books" className="bg-ink py-[72px]">
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)]">
-        <div className="sticky top-[60px] z-[5] bg-ink py-4">
-          <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase">
+        <div className="sticky top-[60px] z-[5] bg-ink py-2 md:py-4">
+          <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase md:mb-2.5">
             Books
           </div>
-          <h2 className="m-0 font-serif text-[32px] font-semibold text-cream">
+          <h2 className="m-0 font-serif text-[22px] font-semibold text-cream sm:text-[26px] md:text-[32px]">
             Biographies and Constitutional History
           </h2>
         </div>

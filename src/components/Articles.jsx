@@ -126,11 +126,11 @@ function Articles() {
       id="articles"
       className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]"
     >
-      <div className="sticky top-[60px] z-[5] bg-cream py-4">
-        <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
+      <div className="sticky top-[60px] z-[5] bg-cream py-2 md:py-4">
+        <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">
           Articles
         </div>
-        <h2 className="m-0 font-serif text-[32px] font-semibold">
+        <h2 className="m-0 font-serif text-[22px] font-semibold sm:text-[26px] md:text-[32px]">
           Scholarly &amp; popular writing
         </h2>
       </div>

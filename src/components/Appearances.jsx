@@ -44,11 +44,11 @@ function Appearances() {
   return (
     <div id="appearances" className="border-y border-border bg-card">
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]">
-        <div className="sticky top-[60px] z-[5] mx-auto bg-card pt-4 pb-4 text-center">
-          <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
+        <div className="sticky top-[60px] z-[5] mx-auto bg-card pt-2 pb-2 text-center md:pt-4 md:pb-4">
+          <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">
             Appearances
           </div>
-          <h2 className="m-0 font-serif text-[32px] font-semibold">
+          <h2 className="m-0 font-serif text-[22px] font-semibold sm:text-[26px] md:text-[32px]">
             Hundreds of programs, national and local
           </h2>
         </div>

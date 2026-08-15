@@ -25,11 +25,11 @@ function FieldOfStudy() {
       id="field"
       className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]"
     >
-      <div className="sticky top-[60px] z-[5] mx-auto bg-cream pt-4 pb-4 text-center">
-        <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">
+      <div className="sticky top-[60px] z-[5] mx-auto bg-cream pt-2 pb-2 text-center md:pt-4 md:pb-4">
+        <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">
           Field of Study
         </div>
-        <h2 className="m-0 font-serif text-[32px] font-semibold">
+        <h2 className="m-0 font-serif text-[22px] font-semibold sm:text-[26px] md:text-[32px]">
           The Constitution and the Jeffersonian founders
         </h2>
       </div>
