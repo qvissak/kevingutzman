@@ -292,11 +292,46 @@ const BOOKS = [
   },
 ]
 
+const SITE_URL = 'https://kevingutzman.com'
+
+// Extracts the "2022 · St. Martin's Press · ..." meta line's year and publisher for Book schema.
+function buildBooksSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: BOOKS.map((book, index) => {
+      const [year, publisher] = book.meta.split(' · ')
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Book',
+          name: book.title,
+          ...(book.subtitle && { alternateName: book.subtitle }),
+          description: book.description,
+          author: { '@type': 'Person', name: 'Kevin R. C. Gutzman' },
+          datePublished: year,
+          ...(publisher && {
+            publisher: { '@type': 'Organization', name: publisher },
+          }),
+          image: `${SITE_URL}${book.cover}`,
+          url: book.href,
+        },
+      }
+    }),
+  }
+}
+
 function Books() {
   const [selectedBook, setSelectedBook] = useState(null)
+  const booksJsonLd = JSON.stringify(buildBooksSchema()).replace(/</g, '\\u003c')
 
   return (
     <div id="books" className="bg-ink py-[72px]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: booksJsonLd }}
+      />
       <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)]">
         <div className="sticky top-[60px] z-[5] bg-ink py-2 md:py-4">
           <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-gold uppercase md:mb-2.5">
