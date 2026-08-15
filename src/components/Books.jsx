@@ -9,6 +9,7 @@ import coverMadison from '../assets/books/james-madison.jpg'
 import coverTJ from '../assets/books/thomas-jefferson-revolutionary.jpg'
 import coverJeffersonians from '../assets/books/jeffersonians.jpg'
 import BookModal from './BookModal'
+import { trackEvent } from '../analytics'
 
 const BOOKS = [
   {
@@ -315,7 +316,10 @@ function Books() {
             <button
               key={book.title}
               type="button"
-              onClick={() => setSelectedBook(book)}
+              onClick={() => {
+                trackEvent('view_item', { item_name: book.title })
+                setSelectedBook(book)
+              }}
               className="flex cursor-pointer flex-col gap-3.5 text-left text-inherit hover:text-inherit"
             >
               <div className="relative w-full">

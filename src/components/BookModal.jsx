@@ -2,6 +2,7 @@
 // Who calls it / when: rendered by Books.jsx when a book card is clicked; closes on backdrop click, the close button, or Escape.
 // Gotchas: locks page scroll while open and restores it on close — the Escape listener and scroll lock are DOM-coupled effects local to this component, not domain state. The Buy button sits in a footer outside the scrollable content div so it stays on screen regardless of scroll position. A `longDescription` entry may be a string (paragraph) or an array of strings (rendered as a bullet list); a review's `quote` may contain "\n\n" for multi-paragraph reviews (rendered via whitespace-pre-line) and may carry an optional `title`. The Buy button's icon is Amazon's smile-arrow mark (path lifted from the simple-icons "amazon" glyph) — used only as a recognizable "leads to Amazon" affiliate cue. A video entry renders as a real `<iframe>` when it has `embedUrl`, otherwise as a "watch" link card — most providers (e.g. C-SPAN) block automated fetches behind a paywall, so their embed URLs can't be verified programmatically and must be supplied by hand. Fades in on mount and fades out on close: `handleClose` flips `isVisible` off, then waits out the CSS transition duration (200ms) before calling the real `onClose` that unmounts this component — the parent's conditional render has no exit-animation hook of its own, so the delay has to live here.
 import { useEffect, useState } from 'react'
+import { trackEvent } from '../analytics'
 
 const TRANSITION_MS = 200
 
@@ -113,6 +114,13 @@ function BookModal({ book, onClose }) {
                       href={video.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() =>
+                        trackEvent('select_content', {
+                          content_type: 'video',
+                          item_name: video.title,
+                          book_title: book.title,
+                        })
+                      }
                       className="flex items-center gap-3 border border-border p-3 text-ink no-underline hover:text-ink hover:no-underline"
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-accent text-card">
@@ -198,6 +206,12 @@ function BookModal({ book, onClose }) {
             href={book.href}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              trackEvent('select_content', {
+                content_type: 'buy_link',
+                item_name: book.title,
+              })
+            }
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#e7ac0a] bg-[#f7ca00] px-6 py-3 text-[15px] font-bold text-[#0f1111] no-underline hover:bg-[#f4be0e] hover:text-[#0f1111] hover:no-underline active:bg-[#e2ab00]"
           >
             <svg width="20" height="20" viewBox="0 -1 20 20" fill="currentColor" aria-hidden="true">
