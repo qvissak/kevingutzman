@@ -1,7 +1,7 @@
 // What: Time-boxed announcement card for the AIER Summer 2026 Visiting Research Fellowship.
 // Who calls it / when: rendered once by App.jsx, between Hero and About.
-// Gotchas: hides itself once FELLOWSHIP_EXPIRES has passed — remove this component (and fold the
-// credential into About.jsx's bio/stats) once the fellowship is over.
+// Gotchas: hides itself once FELLOWSHIP_EXPIRES has passed. The credential is already a permanent
+// stat tile in About.jsx, so once this expires it can simply be deleted (no further follow-up).
 import fellowshipPhoto from '../assets/aier-fellowship.jpg'
 import { trackEvent } from '../analytics'
 

@@ -11,6 +11,11 @@ const STATS = [
   },
   { value: '500+', label: 'Media appearances' },
   { value: '27', label: 'Years of teaching experience' },
+  {
+    value: 'Visiting Research Fellow',
+    label: 'American Institute for Economic Research, 2026',
+    small: true,
+  },
 ]
 
 function About() {
