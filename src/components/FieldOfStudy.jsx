@@ -23,7 +23,7 @@ function FieldOfStudy() {
   return (
     <div
       id="field"
-      className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(28px,6vw,52px)]"
+      className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(28px,6vw,52px)] scroll-mt-[60px]"
     >
       <div className="sticky top-[60px] z-[5] mx-auto bg-cream pt-2 pb-2 text-center md:pt-4 md:pb-4">
         <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">

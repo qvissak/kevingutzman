@@ -20,7 +20,7 @@ const STATS = [
 
 function About() {
   return (
-    <div id="about" className="border-y border-border bg-card">
+    <div id="about" className="border-y border-border bg-card scroll-mt-[60px]">
       <div className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-10 px-[clamp(16px,4vw,32px)] py-[clamp(28px,6vw,52px)]">
         <div className="sticky top-[60px] self-start bg-card py-2 md:py-4">
           <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">
