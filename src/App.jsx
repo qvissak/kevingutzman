@@ -4,6 +4,7 @@
 import PromoBanner from './components/PromoBanner'
 import Nav from './components/Nav'
 import Hero from './components/Hero'
+import Fellowship from './components/Fellowship'
 import About from './components/About'
 import FieldOfStudy from './components/FieldOfStudy'
 import Books from './components/Books'
@@ -18,6 +19,7 @@ function App() {
       <PromoBanner />
       <Nav />
       <Hero />
+      <Fellowship />
       <About />
       <FieldOfStudy />
       <Books />

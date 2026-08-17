@@ -8,7 +8,7 @@ function Hero() {
   return (
     <div
       id="top"
-      className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-center gap-10 px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)] pb-16"
+      className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(300px,1fr))] items-center gap-10 px-[clamp(16px,4vw,32px)] pt-[clamp(28px,6vw,52px)] pb-16"
     >
       <div>
         <div className="mb-[18px] text-[13px] font-semibold tracking-[0.12em] text-accent uppercase">

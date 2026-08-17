@@ -43,7 +43,7 @@ const DOCUMENTARIES = [
 function Appearances() {
   return (
     <div id="appearances" className="border-y border-border bg-card">
-      <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)]">
+      <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pt-[clamp(28px,6vw,52px)]">
         <div className="sticky top-[60px] z-[5] mx-auto bg-card pt-2 pb-2 text-center md:pt-4 md:pb-4">
           <div className="mb-1 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase md:mb-2.5">
             Appearances

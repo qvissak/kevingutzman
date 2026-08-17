@@ -25,7 +25,7 @@ function Contact() {
   return (
     <div
       id="contact"
-      className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-10 px-[clamp(16px,4vw,32px)] pt-[clamp(40px,8vw,72px)] pb-[88px]"
+      className="mx-auto grid max-w-[1100px] grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-10 px-[clamp(16px,4vw,32px)] pt-[clamp(28px,6vw,52px)] pb-[88px]"
     >
       <div>
         <div className="mb-2.5 text-[13px] font-semibold tracking-[0.1em] text-accent uppercase">

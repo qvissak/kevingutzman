@@ -327,7 +327,7 @@ function Books() {
   const booksJsonLd = JSON.stringify(buildBooksSchema()).replace(/</g, '\\u003c')
 
   return (
-    <div id="books" className="bg-ink py-[72px]">
+    <div id="books" className="bg-ink py-[52px]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: booksJsonLd }}
