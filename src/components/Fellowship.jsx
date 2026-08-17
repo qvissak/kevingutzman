@@ -12,7 +12,7 @@ function Fellowship() {
 
   return (
     <div className="mx-auto max-w-[1100px] px-[clamp(16px,4vw,32px)] pb-16">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] items-center gap-6 border border-border bg-card p-7">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] items-center gap-6 border border-border bg-card p-5">
         <img
           src={fellowshipPhoto}
           alt="AIER campus — Visiting Research Fellow, Summer '26"
