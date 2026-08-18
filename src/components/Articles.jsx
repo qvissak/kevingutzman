@@ -58,6 +58,21 @@ const BOOK_CHAPTERS = [
 
 const ADDITIONAL_SCHOLARSHIP = [
   {
+    title: '"The Jeffersonian Republic"',
+    citation: 'Podcast, Law & Liberty (2022)',
+    href: 'https://lawliberty.org/podcast/the-jeffersonian-republic/',
+  },
+  {
+    title: '"Reclaiming 1619"',
+    citation: 'Law & Liberty (2019)',
+    href: 'https://lawliberty.org/reclaiming-1619/',
+  },
+  {
+    title: '"Cleansing Our Institutions the Lessig Way"',
+    citation: 'Law & Liberty (2019)',
+    href: 'https://lawliberty.org/cleansing-our-institutions-the-lessig-way/',
+  },
+  {
     title: '"What Is Still American in the Thought of Thomas Jefferson?"',
     citation: 'Modern Age (2018)',
   },
@@ -68,6 +83,11 @@ const ADDITIONAL_SCHOLARSHIP = [
   {
     title: '"We Should Be Cheering the Likely End of the Senate Filibuster"',
     citation: 'Fox News Online (2017)',
+  },
+  {
+    title: '"The Radical Jefferson: A Conversation with Kevin Gutzman"',
+    citation: 'Podcast, Law & Liberty (2017)',
+    href: 'https://lawliberty.org/podcast/the-radical-jefferson-a-conversation-with-kevin-gutzman/',
   },
   {
     title: 'Hillary Clinton qualifications op-ed',
@@ -93,6 +113,11 @@ const BOOK_REVIEWS = [
     citation: 'Law & Liberty (2024)',
   },
   {
+    title: 'Review of William E. Leuchtenburg, Patriot Presidents',
+    citation: 'Law & Liberty (2024)',
+    href: 'https://lawliberty.org/book-review/a-new-deal-perspective-on-the-founding-presidencies/',
+  },
+  {
     title: "Review of Brook Poston, The Founders' Curse",
     citation: 'Modern Age (Summer 2024)',
   },
@@ -111,7 +136,18 @@ function EntryList({ entries }) {
           className="border-t border-border py-[18px] last:border-b"
         >
           <h3 className="m-0 mb-1 font-serif text-[17px] font-semibold">
-            {entry.title}
+            {entry.href ? (
+              <a
+                href={entry.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-accent"
+              >
+                {entry.title}
+              </a>
+            ) : (
+              entry.title
+            )}
           </h3>
           <div className="text-[13px] text-muted">{entry.citation}</div>
         </div>

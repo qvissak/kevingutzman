@@ -32,6 +32,11 @@ const ADDRESSES = [
     title: 'Constitution Day Keynote Speaker',
     venue: 'The Citadel, 2015',
   },
+  {
+    title: 'Thomas Jefferson Lecture at UTSI',
+    venue: 'University of Tennessee Space Institute, 2009',
+    href: 'https://www.utsi.edu/thomas-jefferson-lecture-at-utsi/',
+  },
 ]
 
 const DOCUMENTARIES = [
@@ -90,7 +95,18 @@ function Appearances() {
                 className="border-t border-border py-4 last:border-b"
               >
                 <h3 className="m-0 mb-1 font-serif text-base font-semibold">
-                  {address.title}
+                  {address.href ? (
+                    <a
+                      href={address.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-accent"
+                    >
+                      {address.title}
+                    </a>
+                  ) : (
+                    address.title
+                  )}
                 </h3>
                 <div className="text-[13px] text-muted">{address.venue}</div>
               </div>
