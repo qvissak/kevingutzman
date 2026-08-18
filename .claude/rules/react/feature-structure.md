@@ -62,7 +62,7 @@ Remember: this is the shape a feature grows into. A new feature with two compone
 
 ## 4. Legacy-compatible shape
 
-Some existing apps (e.g. `dailywire.com/apps/web`) are rooted at `components/` instead of `features/`. In that case, adding a `components/` folder inside a feature would create `components/<feature>/components/`, which is silly. The rule adapts: same shape as greenfield, just drop the inner `components/` folder since the outer root already owns that name.
+Some existing apps are rooted at `components/` instead of `features/`. In that case, adding a `components/` folder inside a feature would create `components/<feature>/components/`, which is silly. The rule adapts: same shape as greenfield, just drop the inner `components/` folder since the outer root already owns that name.
 
 ```
 components/

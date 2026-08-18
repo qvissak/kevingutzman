@@ -164,7 +164,7 @@ When an AI agent is unsure about live AWS infrastructure, metrics, alarms, or se
 
 Balance availability, observability, and durability against AWS cost. Do not add expensive redundancy, retention, logging, tracing, metrics, queues, storage classes, NAT paths, RDS sizing, or cross-region behavior without a clear reliability need. Prefer explicit cost controls such as retention windows, sampling, bounded dimensions, feature flags, and environment-specific settings.
 
-High-cardinality telemetry is expensive and should be opt-in or sampled unless it is clearly required. In `dailywire-cms-2`, high-cardinality metrics were put behind a feature flag so they emit only selectively; use that pattern for costly diagnostics instead of making every request emit unbounded dimensions.
+High-cardinality telemetry is expensive and should be opt-in or sampled unless it is clearly required. Put high-cardinality metrics behind a feature flag so they emit only selectively; use that pattern for costly diagnostics instead of making every request emit unbounded dimensions.
 
 ## Observability and alarms
 

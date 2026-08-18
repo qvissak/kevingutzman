@@ -94,7 +94,7 @@ Do not write tests that depend on exact values managed outside the repo unless t
 Examples of brittle assertions:
 
 - checking that a specific CMS article title, hero image, shelf label, promo copy, or price text appears
-- checking copy or values that can be changed in `dailywire-cms-2`
+- checking copy or values that can be changed in a backing CMS
 - checking item order when the order is editorially or administratively configurable
 
 Prefer assertions against stable behavior:

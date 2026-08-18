@@ -233,41 +233,14 @@ Before editing any file matching the globs below, open the linked rule and follo
 
 | Topic | Scope | Globs | Read this file |
 |---|---|---|---|
-| Android Project Engineering Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/ANDROID_README.mdc` |
-| Android AI Agent Guidelines | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/ai-agent-guidelines.mdc` |
-| Android Architecture Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/architecture.mdc` |
-| Android Compose UI Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/compose-ui.mdc` |
-| Android Data And Network Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/data-network.mdc` |
-| Deeplink Routing Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/deeplink-routing-rules.mdc` |
-| Android Foundations | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/foundations.mdc` |
-| Navigation Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/navigation.mdc` |
-| Android Persistence Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/persistence.mdc` |
-| Android Testing Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/testing.mdc` |
-| Android ViewModel Standards | android | `**/*.kt, **/*.kts, **/*.gradle` | `.cursor/rules/android/viewmodel.mdc` |
 | Backend Foundations | backend | `**/server/**, **/api/**, **/cmd/**, **/internal/**, **/*.go, **/*.py, **/*.sql, **/*.tf, **/*.tfvars, **/*.tf.json, **/cdk/**, **/cdk.json, .github/workflows/**, **/*.sh, **/*.bash` | `.cursor/rules/backend/foundations.mdc` |
 | Telemetry Noise and False Alarms | backend | `**/server/**, **/api/**, **/cmd/**, **/internal/**, **/*.go, **/*.py, **/*.sql, **/*.tf, **/*.tfvars, **/*.tf.json, **/cdk/**, **/cdk.json, .github/workflows/**, **/*.sh, **/*.bash` | `.cursor/rules/backend/telemetry-noise.mdc` |
 | Frontend Architecture (Clean Patterns) | frontend | `**/*.tsx, **/*.ts, **/*.jsx, **/*.js, **/*.swift, **/*.kt` | `.cursor/rules/frontend/architecture.mdc` |
-| iOS Architecture Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/architecture.mdc` |
-| iOS CarPlay Standards | ios | `**/Services/CarPlay/**/*.swift, **/*CarPlay*.swift, **/*CarPlay*Tests.swift` | `.cursor/rules/ios/carplay.mdc` |
-| iOS Data And Network Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/data-network.mdc` |
-| iOS Deeplink Routing Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/deeplink-routing-rules.mdc` |
-| iOS Foundations | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/foundations.mdc` |
-| iOS Navigation Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/navigation.mdc` |
-| iOS Persistence Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/persistence.mdc` |
-| iOS SwiftUI UI Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/swiftui-ui.mdc` |
-| iOS Testing Standards | ios | `**/*.swift, **/*.pbxproj` | `.cursor/rules/ios/testing.mdc` |
 | QA Foundations | qa | `**/tests/**, **/__tests__/**, **/e2e/**, **/qa/**, **/cypress/**, **/playwright/**, **/*.feature, **/*.test.ts, **/*.test.tsx, **/*.test.js, **/*.test.jsx, **/*.spec.ts, **/*.spec.tsx, **/*.spec.js, **/*.spec.jsx, **/*_test.go, **/test_*.py, **/*_test.py, **/conftest.py, **/pytest.ini, **/*Test.kt, **/*Tests.swift, **/*UITests.swift, .maestro.yaml, .maestro.yml, **/.maestro.yaml, **/.maestro.yml, **/.maestro/**/*.yaml, **/.maestro/**/*.yml, **/maestro/**/*.yaml, **/maestro/**/*.yml, flows/**/*.yaml, flows/**/*.yml, **/flows/**/*.yaml, **/flows/**/*.yml, *.maestro.yaml, *.maestro.yml, **/*.maestro.yaml, **/*.maestro.yml` | `.cursor/rules/qa/foundations.mdc` |
 | Maestro Mobile E2E Standards | qa | `.maestro.yaml, .maestro.yml, **/.maestro.yaml, **/.maestro.yml, **/.maestro/**/*.yaml, **/.maestro/**/*.yml, **/maestro/**/*.yaml, **/maestro/**/*.yml, flows/**/*.yaml, flows/**/*.yml, **/flows/**/*.yaml, **/flows/**/*.yml, *.maestro.yaml, *.maestro.yml, **/*.maestro.yaml, **/*.maestro.yml` | `.cursor/rules/qa/maestro.mdc` |
 | React Feature Structure | react | `**/*.tsx, **/*.ts, **/*.jsx, **/*.js` | `.cursor/rules/react/feature-structure.mdc` |
 | React State And Side Effects | react | `**/*.tsx, **/*.ts, **/*.jsx, **/*.js` | `.cursor/rules/react/state-and-side-effects.mdc` |
-| Roku Architecture Standards | roku | `**/*.brs, **/*.bs, components/**/*.xml, **/components/**/*.xml, source/**/*.xml, **/source/**/*.xml, bsconfig.json, **/bsconfig.json, bslint.json, **/bslint.json, manifest, **/manifest` | `.cursor/rules/roku/architecture.mdc` |
-| Roku Data And Network Standards | roku | `**/*.brs, **/*.bs, components/**/*.xml, **/components/**/*.xml, source/**/*.xml, **/source/**/*.xml, bsconfig.json, **/bsconfig.json, bslint.json, **/bslint.json, manifest, **/manifest` | `.cursor/rules/roku/data-network.mdc` |
-| Roku Foundations | roku | `**/*.brs, **/*.bs, components/**/*.xml, **/components/**/*.xml, source/**/*.xml, **/source/**/*.xml, bsconfig.json, **/bsconfig.json, bslint.json, **/bslint.json, manifest, **/manifest` | `.cursor/rules/roku/foundations.mdc` |
-| Roku Testing Standards | roku | `**/*.brs, **/*.bs, components/**/*.xml, **/components/**/*.xml, source/**/*.xml, **/source/**/*.xml, bsconfig.json, **/bsconfig.json, bslint.json, **/bslint.json, manifest, **/manifest` | `.cursor/rules/roku/testing.mdc` |
-| tvOS Dependency Injection | tvos | `DailyWire/**/*.swift, DailyWireTests/**/*.swift, DailyWire.xcodeproj/**/*.pbxproj, **/*tvOS*.swift, **/*tvOS*.pbxproj` | `.cursor/rules/tvos/dependency-injection.mdc` |
-| tvOS Foundations | tvos | `DailyWire/**/*.swift, DailyWireTests/**/*.swift, DailyWire.xcodeproj/**/*.pbxproj, **/*tvOS*.swift, **/*tvOS*.pbxproj` | `.cursor/rules/tvos/foundations.mdc` |
-| tvOS Navigation | tvos | `DailyWire/**/*.swift, DailyWireTests/**/*.swift, DailyWire.xcodeproj/**/*.pbxproj, **/*tvOS*.swift, **/*tvOS*.pbxproj` | `.cursor/rules/tvos/navigation.mdc` |
 
 ---
 
-_Source: `bkservices/engineering-standards`. To change a rule, open a PR there._
+_Source: the shared engineering-standards handbook. To change a rule, open a PR there._

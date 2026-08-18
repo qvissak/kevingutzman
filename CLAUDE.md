@@ -16,8 +16,8 @@ Kevin Gutzman's website.
 
 ## Shared standards
 
-This repo follows the rules in [`AGENTS.md`](./AGENTS.md), which is mirrored from
-[`bkservices/engineering-standards`](https://github.com/bkservices/engineering-standards). Cursor reads
+This repo follows the rules in [`AGENTS.md`](./AGENTS.md), which is mirrored from the
+shared engineering-standards handbook. Cursor reads
 `.cursor/rules/*.mdc` for glob-routed platform rules from the same source.
 
 To pull the latest handbook updates, run from the repo root:
